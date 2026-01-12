@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "stackshow",
-    "slug": "stackshow",
+    "name": "aligned",
+    "slug": "aligned",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/logo.png",
-    "scheme": "stackshow",
+    "scheme": "aligned",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
