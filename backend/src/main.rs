@@ -1,7 +1,16 @@
+#![allow(dead_code)]
+#![allow(unused_variables)]
+
 use actix_web::{App, HttpResponse, HttpServer, Responder, web};
+use sqlx::postgres::{PgPoolOptions};
+// use dotenv::dotenv;
+use std::time::Duration;
+use std::sync::Mutex;
+use std::collections::HashMap;
 
 mod models;
 mod routes;
+mod jwtauth;
 
 use routes::{auth, feed, interactions, matches, profile};
 
@@ -11,9 +20,25 @@ async fn health_check() -> impl Responder {
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
+    // Load the .env file
+    dotenv::dotenv().ok();
+
+    // get the db url
+    let database_url: String = std::env::var("DATABASE_URL").expect("DATABASE_URL MUST BE SET");
+
+    // pg connection to connect to the pool
+    let pool = PgPoolOptions::new().max_connections(10).min_connections(1).acquire_timeout(Duration::from_secs(5)).connect(database_url.as_str()).await.expect("Failed to connect to database");
+
+    // Create AppState BEFORE the closure so it's shared across all workers
+    let app_state = web::Data::new(models::state::AppState {
+        pending_verifications: Mutex::new(HashMap::new()),
+    });
+
     println!("Starting server on 127.0.0.1:8080");
-    HttpServer::new(|| {
+    HttpServer::new(move || {
         App::new()
+            .app_data(web::Data::new(pool.clone()))
+            .app_data(app_state.clone())
             .route("/health", web::get().to(health_check))
             // Auth
             .route("/auth/phone/login", web::post().to(auth::phone_login))
