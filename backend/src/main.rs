@@ -11,6 +11,7 @@ use std::collections::HashMap;
 mod models;
 mod routes;
 mod jwtauth;
+mod db;
 
 use routes::{auth, feed, interactions, matches, profile};
 

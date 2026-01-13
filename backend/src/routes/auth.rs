@@ -5,6 +5,7 @@ use crate::jwtauth::Claims;
 use actix_web::{HttpResponse, Responder, web};
 use chrono::Utc;
 use sqlx::PgPool;
+use crate::db;
 
 pub async fn phone_login(body: web::Json<PhoneLoginRequest>, _pool: web::Data<PgPool>, state: web::Data<AppState>) -> impl Responder {
     println!("Auth: Phone Login for {}", body.phone);
@@ -22,7 +23,7 @@ pub async fn phone_login(body: web::Json<PhoneLoginRequest>, _pool: web::Data<Pg
     })
 }
 
-pub async fn phone_verify(body: web::Json<PhoneVerifyRequest>, _pool: web::Data<PgPool>, state: web::Data<AppState>) -> impl Responder {
+pub async fn phone_verify(body: web::Json<PhoneVerifyRequest>, pool: web::Data<PgPool>, state: web::Data<AppState>) -> impl Responder {
     println!(
         "Auth: Verify Code {} for ID {}",
         body.code, body.verification_id
@@ -56,24 +57,32 @@ pub async fn phone_verify(body: web::Json<PhoneVerifyRequest>, _pool: web::Data<
     
     match Claims::create_new_token(my_claim) {
         Ok(token) => {
-            // TODO: create the db entry of the phone number
-            // ..
+            // Get or create the user in the database
+            let (user_id, is_new_user) = match db::user_queries::get_or_create_user(&pool, &phone).await {
+                Ok(result) => result,
+                Err(e) => {
+                    println!("Failed to get/create user: {:?}", e);
+                    return HttpResponse::InternalServerError().json(StatusResponse {
+                        status: "error".to_string(),
+                        message: Some("Database error".to_string()),
+                    });
+                }
+            };
 
             HttpResponse::Ok().json(AuthResponse {
                 token,
                 user: UserSummary {
-                    id: phone.clone().to_string(),
+                    id: user_id,
                     is_profile_complete: false,
-                    is_new_user: true,
+                    is_new_user,
                 },
             })
-
         },
-        Err(err) => {
-            return HttpResponse::InternalServerError().json(StatusResponse {
+        Err(_err) => {
+            HttpResponse::InternalServerError().json(StatusResponse {
                 status: "error".to_string(),
                 message: Some("Internal server error".to_string()),
-            });
+            })
         }
     }
 }
