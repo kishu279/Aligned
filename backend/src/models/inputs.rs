@@ -12,12 +12,32 @@ pub struct PhoneVerifyRequest {
 }
 
 #[derive(Deserialize)]
+pub struct UpdateUserRequest {
+    pub email: Option<String>,
+    pub phone: Option<String>,
+}   
+
+#[derive(Deserialize)]
 pub struct UpdateProfileRequest {
+    // For profiles table
     pub name: Option<String>,
     pub bio: Option<String>,
+    pub birthdate: Option<String>,      // DATE - "1995-03-15"
+    pub pronouns: Option<String>,        // "she/her", "he/him"
+    pub gender: Option<String>,          // "Woman", "Man", "Non-binary"
+    pub sexuality: Option<String>,       // "Straight", "Gay", "Bisexual"
+    pub height: Option<i32>,             // in cm
+    pub location: Option<String>,        // Will need to convert to POINT
     pub job: Option<String>,
-    pub height: Option<i32>,
-    // Add other fields as optional
+    pub company: Option<String>,
+    pub school: Option<String>,
+    pub ethnicity: Option<String>,
+    pub politics: Option<String>,
+    pub religion: Option<String>,
+    pub relationship_type: Option<String>,  // "Monogamy"
+    pub dating_intention: Option<String>,   // "Long-term relationship"
+    pub drinks: Option<String>,             // "Socially", "No"
+    pub smokes: Option<String>,             // "No", "Yes"
 }
 
 #[derive(Deserialize)]

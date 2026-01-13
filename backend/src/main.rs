@@ -2,7 +2,9 @@
 #![allow(unused_variables)]
 
 use actix_web::{App, HttpResponse, HttpServer, Responder, web};
-use sqlx::postgres::{PgPoolOptions};
+use actix_web_httpauth::middleware::HttpAuthentication;
+use crate::jwtauth::Claims;
+use sqlx::postgres::PgPoolOptions;
 // use dotenv::dotenv;
 use std::time::Duration;
 use std::sync::Mutex;
@@ -37,44 +39,37 @@ async fn main() -> std::io::Result<()> {
 
     println!("Starting server on 127.0.0.1:8080");
     HttpServer::new(move || {
+        // Create the auth middleware
+        let auth = HttpAuthentication::bearer(Claims::jwt_validator);
+
         App::new()
             .app_data(web::Data::new(pool.clone()))
             .app_data(app_state.clone())
+            // Public routes (no auth required)
             .route("/health", web::get().to(health_check))
-            // Auth
             .route("/auth/phone/login", web::post().to(auth::phone_login))
             .route("/auth/phone/verify", web::post().to(auth::phone_verify))
-            // Profile
-            .route("/profile/me", web::get().to(profile::get_profile))
-            .route("/profile", web::post().to(profile::update_profile))
-            .route(
-                "/profile/images",
-                web::post().to(profile::upload_profile_images),
-            )
-            .route(
-                "/profile/finalize",
-                web::post().to(profile::finalize_profile),
-            )
-            .route("/profile", web::delete().to(profile::delete_account))
-            // Feed
-            .route("/feed", web::get().to(feed::get_feed))
-            // Interactions
-            .route("/interact", web::post().to(interactions::interact))
-            // Matches & Messages
-            .route("/matches", web::get().to(matches::get_matches))
-            .route(
-                "/matches/{id}/messages",
-                web::get().to(matches::get_messages),
-            )
-            .route(
-                "/matches/{id}/messages",
-                web::post().to(matches::send_message),
+            // Protected routes (auth required) - wrapped in a scope with middleware
+            .service(
+                web::scope("")
+                    .wrap(auth)
+                    .route("/profile/me", web::get().to(profile::get_profile))
+                    .route("/profile", web::post().to(profile::update_profile))
+                    .route("/profile/images", web::post().to(profile::upload_profile_images))
+                    .route("/profile/finalize", web::post().to(profile::finalize_profile))
+                    .route("/profile", web::delete().to(profile::delete_account))
+                    .route("/feed", web::get().to(feed::get_feed))
+                    .route("/interact", web::post().to(interactions::interact))
+                    .route("/matches", web::get().to(matches::get_matches))
+                    .route("/matches/{id}/messages", web::get().to(matches::get_messages))
+                    .route("/matches/{id}/messages", web::post().to(matches::send_message))
             )
     })
     .bind(("127.0.0.1", 8080))?
     .run()
     .await
 }
+
 
 /*
 Route Descriptions:

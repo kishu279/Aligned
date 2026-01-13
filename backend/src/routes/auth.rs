@@ -47,27 +47,31 @@ pub async fn phone_verify(body: web::Json<PhoneVerifyRequest>, pool: web::Data<P
             message: Some("Invalid verification code".to_string()),
         });
     }
+    
+    // Step 1: Get or create the user in the database
+    let (user_id, is_new_user) = match db::user_queries::get_or_create_user(&pool, &phone).await {
+        Ok(result) => result,
+        Err(e) => {
+            println!("Failed to get/create user: {:?}", e);
+            return HttpResponse::InternalServerError().json(StatusResponse {
+                status: "error".to_string(),
+                message: Some("Database error".to_string()),
+            });
+        }
+    };
 
-    // create the token
+    // Step 2: Create token with user_id as subject
     let my_claim = Claims {
-        sub: phone.clone().to_string(),
+        sub: user_id.clone(),
         company: "Aligned".to_string(),
         exp: (Utc::now().timestamp() + 86400) as usize,
     };
-    
-    match Claims::create_new_token(my_claim) {
+
+    // Step 3: Generate token and return response
+    match Claims::create_new_token(&my_claim) {
         Ok(token) => {
-            // Get or create the user in the database
-            let (user_id, is_new_user) = match db::user_queries::get_or_create_user(&pool, &phone).await {
-                Ok(result) => result,
-                Err(e) => {
-                    println!("Failed to get/create user: {:?}", e);
-                    return HttpResponse::InternalServerError().json(StatusResponse {
-                        status: "error".to_string(),
-                        message: Some("Database error".to_string()),
-                    });
-                }
-            };
+            // Optionally clean up verification state
+            // state.pending_verifications.lock().unwrap().remove(&body.verification_id);
 
             HttpResponse::Ok().json(AuthResponse {
                 token,
@@ -77,7 +81,7 @@ pub async fn phone_verify(body: web::Json<PhoneVerifyRequest>, pool: web::Data<P
                     is_new_user,
                 },
             })
-        },
+        }
         Err(_err) => {
             HttpResponse::InternalServerError().json(StatusResponse {
                 status: "error".to_string(),
@@ -86,3 +90,4 @@ pub async fn phone_verify(body: web::Json<PhoneVerifyRequest>, pool: web::Data<P
         }
     }
 }
+
