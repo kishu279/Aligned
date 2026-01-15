@@ -15,18 +15,18 @@ pub async fn interact(
         None => (None, None),
     };
 
-    sqlx::query!(
+    sqlx::query(
         r#"INSERT INTO interactions (from_user_id, to_user_id, action, context_type, context_id, comment) 
            VALUES ($1, $2, $3, $4, $5, $6)
            ON CONFLICT (from_user_id, to_user_id) 
-           DO UPDATE SET action = $3, context_type = $4, context_id = $5, comment = $6"#,
-        from_user_id,
-        to_user_id,
-        body.action,
-        context_type,
-        context_id,
-        body.comment
+           DO UPDATE SET action = $3, context_type = $4, context_id = $5, comment = $6"#
     )
+    .bind(from_user_id)
+    .bind(to_user_id)
+    .bind(&body.action)
+    .bind(&context_type)
+    .bind(&context_id)
+    .bind(&body.comment)
     .execute(pool)
     .await?;
 

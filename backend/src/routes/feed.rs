@@ -1,14 +1,13 @@
-use actix_web::{web, HttpMessage, HttpRequest, HttpResponse, Responder};
+use actix_web::{HttpMessage, HttpRequest, HttpResponse, Responder, web};
 use sqlx::PgPool;
 use uuid::Uuid;
 
 use crate::db::{profile_queries, user_queries};
 use crate::jwtauth::Claims;
-use crate::models::outputs::{StatusResponse, FeedResponse, UserProfile};
 use crate::models::inputs::Preferences;
+use crate::models::outputs::{FeedResponse, ProfileDetails, StatusResponse, UserProfile};
 
 pub async fn get_feed(pool: web::Data<PgPool>, req: HttpRequest) -> impl Responder {
-    
     let Some(claim) = req.extensions().get::<Claims>().cloned() else {
         return HttpResponse::Unauthorized().json(StatusResponse {
             status: "error".to_string(),
@@ -53,38 +52,48 @@ pub async fn get_feed(pool: web::Data<PgPool>, req: HttpRequest) -> impl Respond
         }
     };
 
-    // Log preferences for debugging
-    println!("User {} preferences:", user_id);
-    if let Some(ref gp) = preference.gender_preference {
-        println!("  Gender preference: {:?}", gp);
-    }
-
     // Get suggestions based on gender preference only (for now)
-    let suggestions = match profile_queries::get_suggestions(
-        &pool,
-        preference.gender_preference,
-        &user_id,
-    ).await {
-        Ok(profiles) => profiles,
-        Err(e) => {
-            return HttpResponse::InternalServerError().json(StatusResponse {
-                status: "error".to_string(),
-                message: Some(format!("Failed to get suggestions: {}", e)),
-            });
-        }
-    };
+    let suggestions =
+        match profile_queries::get_suggestions(&pool, preference.gender_preference, &user_id).await
+        {
+            Ok(profiles) => profiles,
+            Err(e) => {
+                return HttpResponse::InternalServerError().json(StatusResponse {
+                    status: "error".to_string(),
+                    message: Some(format!("Failed to get suggestions: {}", e)),
+                });
+            }
+        };
 
-    println!("Found {} matching profiles", suggestions.len());
-
-    // Convert ProfileDetails to UserProfile for the response
-    let profiles: Vec<UserProfile> = suggestions.into_iter().map(|p| {
-        UserProfile {
-            id: "".to_string(), // We don't have user_id in ProfileDetails
+    // Convert SuggestionProfile to UserProfile for the response
+    let profiles: Vec<UserProfile> = suggestions
+        .into_iter()
+        .map(|p| UserProfile {
+            id: p.user_id.clone(),
             images: None,
             prompts: None,
-            details: Some(p),
-        }
-    }).collect();
+            details: Some(ProfileDetails {
+                name: p.name,
+                bio: p.bio,
+                birthdate: p.birthdate,
+                pronouns: p.pronouns,
+                gender: p.gender,
+                sexuality: p.sexuality,
+                height: p.height,
+                location: p.location,
+                job: p.job,
+                company: p.company,
+                school: p.school,
+                ethnicity: p.ethnicity,
+                politics: p.politics,
+                religion: p.religion,
+                relationship_type: p.relationship_type,
+                dating_intention: p.dating_intention,
+                drinks: p.drinks,
+                smokes: p.smokes,
+            }),
+        })
+        .collect();
 
     HttpResponse::Ok().json(FeedResponse { profiles })
 }

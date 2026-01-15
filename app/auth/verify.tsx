@@ -1,7 +1,10 @@
+import { useAuth } from "@/lib/context/AuthContext";
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
 import {
+    ActivityIndicator,
+    Alert,
     KeyboardAvoidingView,
     Platform,
     StyleSheet,
@@ -14,20 +17,41 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function VerificationScreen() {
     const router = useRouter();
+    const { verify } = useAuth();
+    const params = useLocalSearchParams<{ verificationId: string; phone: string }>();
     const [code, setCode] = useState("");
+    const [isLoading, setIsLoading] = useState(false);
 
-    const handleNext = () => {
-        router.push("/auth/interstitial");
+    const handleVerify = async () => {
+        if (code.length < 6 || !params.verificationId) return;
+
+        setIsLoading(true);
+        try {
+            const response = await verify(params.verificationId, code);
+
+            // Navigate based on user status
+            if (response.user.is_new_user || !response.user.is_profile_complete) {
+                // New user or incomplete profile - go to name screen
+                router.push("/auth/name");
+            } else {
+                // Existing user with complete profile - go to main app
+                router.replace("/(tabs)");
+            }
+        } catch (error) {
+            Alert.alert("Error", error instanceof Error ? error.message : "Invalid verification code");
+            setCode("");
+        } finally {
+            setIsLoading(false);
+        }
     };
 
-    // Auto-advance if 6 digits
     const handleTextChange = (text: string) => {
         setCode(text);
-        if (text.length === 6) {
-            // Simulate slight delay/check
+        if (text.length === 6 && !isLoading) {
+            // Auto-verify on 6 digits
             setTimeout(() => {
-                router.push("/auth/interstitial");
-            }, 500);
+                handleVerify();
+            }, 300);
         }
     };
 
@@ -51,15 +75,14 @@ export default function VerificationScreen() {
                     <Text style={styles.title}>Enter your verification{"\n"}code</Text>
 
                     <View style={styles.subtitleRow}>
-                        <Text style={styles.subtitle}>Sent to +91 8797020865 • </Text>
-                        <TouchableOpacity>
+                        <Text style={styles.subtitle}>Sent to {params.phone || "your phone"} • </Text>
+                        <TouchableOpacity onPress={() => router.back()}>
                             <Text style={styles.editLink}>Edit</Text>
                         </TouchableOpacity>
                     </View>
 
-                    {/* Code Input (Simplified approach: Hidden TextInput + Visible Blocks) */}
+                    {/* Code Input */}
                     <View style={styles.codeContainer}>
-                        {/* Visible Blocks */}
                         <View style={styles.blocksContainer}>
                             {[0, 1, 2, 3, 4, 5].map((index) => (
                                 <View key={index} style={[styles.codeBlock, code[index] ? styles.codeBlockFilled : null]}>
@@ -69,7 +92,6 @@ export default function VerificationScreen() {
                             ))}
                         </View>
 
-                        {/* Hidden Input overlaid */}
                         <TextInput
                             style={styles.hiddenInput}
                             keyboardType="number-pad"
@@ -78,22 +100,34 @@ export default function VerificationScreen() {
                             value={code}
                             onChangeText={handleTextChange}
                             caretHidden
+                            editable={!isLoading}
                         />
                     </View>
+
+                    {isLoading && (
+                        <View style={styles.loadingContainer}>
+                            <ActivityIndicator size="small" color="#8B5A9C" />
+                            <Text style={styles.loadingText}>Verifying...</Text>
+                        </View>
+                    )}
                 </View>
 
                 {/* Footer nav */}
                 <View style={styles.footer}>
-                    <TouchableOpacity>
+                    <TouchableOpacity disabled={isLoading}>
                         <Text style={styles.resendText}>Didn't get a code?</Text>
                     </TouchableOpacity>
 
                     <TouchableOpacity
-                        style={[styles.fab, code.length < 6 && styles.fabDisabled]}
-                        onPress={handleNext}
-                        disabled={code.length < 6}
+                        style={[styles.fab, (code.length < 6 || isLoading) && styles.fabDisabled]}
+                        onPress={handleVerify}
+                        disabled={code.length < 6 || isLoading}
                     >
-                        <Ionicons name="chevron-forward" size={28} color={code.length < 6 ? "#999" : "#fff"} />
+                        {isLoading ? (
+                            <ActivityIndicator color="#999" />
+                        ) : (
+                            <Ionicons name="chevron-forward" size={28} color={code.length < 6 ? "#999" : "#fff"} />
+                        )}
                     </TouchableOpacity>
                 </View>
             </KeyboardAvoidingView>
@@ -146,7 +180,7 @@ const styles = StyleSheet.create({
     },
     editLink: {
         fontSize: 15,
-        color: "#8B5A9C", // Brand color
+        color: "#8B5A9C",
         fontWeight: '700',
         fontFamily: "NunitoSans",
     },
@@ -163,9 +197,7 @@ const styles = StyleSheet.create({
         width: 40,
         alignItems: 'center',
     },
-    codeBlockFilled: {
-        // Active state styles
-    },
+    codeBlockFilled: {},
     codeText: {
         fontSize: 24,
         fontWeight: '700',
@@ -184,7 +216,18 @@ const styles = StyleSheet.create({
         left: 0,
         right: 0,
         bottom: 0,
-        opacity: 0, // Invisible but clickable
+        opacity: 0,
+    },
+    loadingContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginTop: 24,
+        gap: 8,
+    },
+    loadingText: {
+        fontSize: 14,
+        color: '#666',
+        fontFamily: "NunitoSans",
     },
     footer: {
         padding: 24,
@@ -195,7 +238,7 @@ const styles = StyleSheet.create({
     resendText: {
         fontSize: 16,
         fontWeight: '700',
-        color: '#4B0082', // Dark Purple
+        color: '#4B0082',
         fontFamily: "NunitoSans",
     },
     fab: {

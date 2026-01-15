@@ -1,7 +1,10 @@
+import { useAuth } from "@/lib/context/AuthContext";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
+    ActivityIndicator,
+    Alert,
     KeyboardAvoidingView,
     Platform,
     StyleSheet,
@@ -14,10 +17,27 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function PhoneInputScreen() {
     const router = useRouter();
+    const { login } = useAuth();
     const [phoneNumber, setPhoneNumber] = useState("");
+    const [isLoading, setIsLoading] = useState(false);
 
-    const handleNext = () => {
-        router.push("/auth/verify");
+    const handleNext = async () => {
+        if (!phoneNumber) return;
+
+        setIsLoading(true);
+        try {
+            const fullPhone = `+91${phoneNumber}`;
+            const verificationId = await login(fullPhone);
+            // Pass verification ID to the verify screen
+            router.push({
+                pathname: "/auth/verify",
+                params: { verificationId, phone: fullPhone }
+            });
+        } catch (error) {
+            Alert.alert("Error", error instanceof Error ? error.message : "Failed to send OTP");
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     return (
@@ -60,24 +80,29 @@ export default function PhoneInputScreen() {
                             value={phoneNumber}
                             onChangeText={setPhoneNumber}
                             selectionColor="#8B5A9C"
+                            editable={!isLoading}
                         />
                     </View>
                     <View style={styles.underline} />
 
                     {/* Footer Text */}
                     <Text style={styles.footerText}>
-                        Hinge will send you a text with a verification code. Message and data rates may apply.
+                        Aligned will send you a text with a verification code. Message and data rates may apply.
                     </Text>
                 </View>
 
                 {/* Floating Action Button */}
                 <View style={styles.fabContainer}>
                     <TouchableOpacity
-                        style={[styles.fab, !phoneNumber && styles.fabDisabled]}
+                        style={[styles.fab, (!phoneNumber || isLoading) && styles.fabDisabled]}
                         onPress={handleNext}
-                        disabled={!phoneNumber}
+                        disabled={!phoneNumber || isLoading}
                     >
-                        <Ionicons name="chevron-forward" size={28} color={!phoneNumber ? "#999" : "#fff"} />
+                        {isLoading ? (
+                            <ActivityIndicator color="#999" />
+                        ) : (
+                            <Ionicons name="chevron-forward" size={28} color={!phoneNumber ? "#999" : "#fff"} />
+                        )}
                     </TouchableOpacity>
                 </View>
             </KeyboardAvoidingView>
@@ -172,7 +197,7 @@ const styles = StyleSheet.create({
         width: 56,
         height: 56,
         borderRadius: 28,
-        backgroundColor: "#000", // Default active color
+        backgroundColor: "#000",
         justifyContent: "center",
         alignItems: "center",
         shadowColor: "#000",
@@ -182,7 +207,7 @@ const styles = StyleSheet.create({
         elevation: 5,
     },
     fabDisabled: {
-        backgroundColor: "#f0f0f0", // Greyed out
+        backgroundColor: "#f0f0f0",
         shadowOpacity: 0,
         elevation: 0,
     },
