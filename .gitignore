@@ -47,3 +47,4 @@ app-example
 
 # Auth
 google-services.json
+signing-certificates.txt
