@@ -1,19 +1,19 @@
 #![allow(dead_code)]
 #![allow(unused_variables)]
 
+use crate::jwtauth::Claims;
 use actix_web::{App, HttpResponse, HttpServer, Responder, web};
 use actix_web_httpauth::middleware::HttpAuthentication;
-use crate::jwtauth::Claims;
 use sqlx::postgres::PgPoolOptions;
 // use dotenv::dotenv;
-use std::time::Duration;
-use std::sync::Mutex;
 use std::collections::HashMap;
+use std::sync::Mutex;
+use std::time::Duration;
 
+mod db;
+mod jwtauth;
 mod models;
 mod routes;
-mod jwtauth;
-mod db;
 
 use routes::{auth, feed, interactions, matches, profile, prompts, user};
 
@@ -30,14 +30,20 @@ async fn main() -> std::io::Result<()> {
     let database_url: String = std::env::var("DATABASE_URL").expect("DATABASE_URL MUST BE SET");
 
     // pg connection to connect to the pool
-    let pool = PgPoolOptions::new().max_connections(10).min_connections(1).acquire_timeout(Duration::from_secs(5)).connect(database_url.as_str()).await.expect("Failed to connect to database");
+    let pool = PgPoolOptions::new()
+        .max_connections(10)
+        .min_connections(1)
+        .acquire_timeout(Duration::from_secs(5))
+        .connect(database_url.as_str())
+        .await
+        .expect("Failed to connect to database");
 
     // Create AppState BEFORE the closure so it's shared across all workers
     let app_state = web::Data::new(models::state::AppState {
         pending_verifications: Mutex::new(HashMap::new()),
     });
 
-    println!("Starting server on 127.0.0.1:8080");
+    println!("Starting server on 0.0.0.0:8080 (accessible from network)");
     HttpServer::new(move || {
         // Create the auth middleware
         let auth = HttpAuthentication::bearer(Claims::jwt_validator);
@@ -63,20 +69,25 @@ async fn main() -> std::io::Result<()> {
                     .route("/feed", web::get().to(feed::get_feed))
                     .route("/interact", web::post().to(interactions::interact))
                     .route("/matches", web::get().to(matches::get_matches))
-                    .route("/matches/{id}/messages", web::get().to(matches::get_messages))
-                    .route("/matches/{id}/messages", web::post().to(matches::send_message))
+                    .route(
+                        "/matches/{id}/messages",
+                        web::get().to(matches::get_messages),
+                    )
+                    .route(
+                        "/matches/{id}/messages",
+                        web::post().to(matches::send_message),
+                    )
                     // Prompts routes
                     .route("/prompts", web::get().to(prompts::get_prompts))
                     .route("/prompts", web::post().to(prompts::create_prompt))
                     .route("/prompts/{order}", web::put().to(prompts::update_prompt))
-                    .route("/prompts/{order}", web::delete().to(prompts::delete_prompt))
+                    .route("/prompts/{order}", web::delete().to(prompts::delete_prompt)),
             )
     })
-    .bind(("127.0.0.1", 8080))?
+    .bind(("0.0.0.0", 8080))?
     .run()
     .await
 }
-
 
 /*
 Route Descriptions:

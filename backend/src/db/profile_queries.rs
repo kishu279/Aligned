@@ -1,28 +1,30 @@
+use crate::models::inputs::UpdateProfileRequest;
+use crate::models::outputs::{ProfileDetails, SuggestionProfile};
 use sqlx::PgPool;
 use uuid::Uuid;
-use crate::models::inputs::UpdateProfileRequest;
-use crate::models::outputs::ProfileDetails;
 
 /// Check if a profile exists for a user
 pub async fn check_profile_exists(pool: &PgPool, user_id: &Uuid) -> Result<bool, sqlx::Error> {
-    let row: Option<(Uuid,)> = sqlx::query_as(
-        "SELECT user_id FROM profiles WHERE user_id = $1"
-    )
-    .bind(user_id)
-    .fetch_optional(pool)
-    .await?;
+    let row: Option<(Uuid,)> = sqlx::query_as("SELECT user_id FROM profiles WHERE user_id = $1")
+        .bind(user_id)
+        .fetch_optional(pool)
+        .await?;
 
     Ok(row.is_some())
 }
 
 /// Create a new profile for a user
-pub async fn create_profile(pool: &PgPool, user_id: &Uuid, req: &UpdateProfileRequest) -> Result<(), sqlx::Error> {
+pub async fn create_profile(
+    pool: &PgPool,
+    user_id: &Uuid,
+    req: &UpdateProfileRequest,
+) -> Result<(), sqlx::Error> {
     sqlx::query(
         r#"INSERT INTO profiles (
             user_id, name, bio, pronouns, gender, sexuality, height, 
             job, company, school, ethnicity, politics, religion,
             relationship_type, dating_intention, drinks, smokes
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)"#
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)"#,
     )
     .bind(user_id)
     .bind(&req.name)
@@ -48,7 +50,11 @@ pub async fn create_profile(pool: &PgPool, user_id: &Uuid, req: &UpdateProfileRe
 }
 
 /// Update an existing profile
-pub async fn update_profile(pool: &PgPool, user_id: &Uuid, req: &UpdateProfileRequest) -> Result<(), sqlx::Error> {
+pub async fn update_profile(
+    pool: &PgPool,
+    user_id: &Uuid,
+    req: &UpdateProfileRequest,
+) -> Result<(), sqlx::Error> {
     sqlx::query(
         r#"UPDATE profiles SET
             name = COALESCE($2, name),
@@ -67,7 +73,7 @@ pub async fn update_profile(pool: &PgPool, user_id: &Uuid, req: &UpdateProfileRe
             dating_intention = COALESCE($15, dating_intention),
             drinks = COALESCE($16, drinks),
             smokes = COALESCE($17, smokes)
-        WHERE user_id = $1"#
+        WHERE user_id = $1"#,
     )
     .bind(user_id)
     .bind(&req.name)
@@ -93,9 +99,13 @@ pub async fn update_profile(pool: &PgPool, user_id: &Uuid, req: &UpdateProfileRe
 }
 
 /// Create or update a profile (upsert)
-pub async fn upsert_profile(pool: &PgPool, user_id: &Uuid, req: &UpdateProfileRequest) -> Result<bool, sqlx::Error> {
+pub async fn upsert_profile(
+    pool: &PgPool,
+    user_id: &Uuid,
+    req: &UpdateProfileRequest,
+) -> Result<bool, sqlx::Error> {
     let exists = check_profile_exists(pool, user_id).await?;
-    
+
     if exists {
         update_profile(pool, user_id, req).await?;
         Ok(false) // was not new
@@ -135,8 +145,12 @@ pub async fn delete_user(pool: &PgPool, user_id: &Uuid) -> Result<(), sqlx::Erro
 }
 
 /// Count how many profile attributes are still NULL (unfilled)
-pub async fn check_profile_attributes_filled(pool: &PgPool, user_id: &Uuid) -> Result<i64, sqlx::Error> {
-    let row: (i64,) = sqlx::query_as(r#"
+pub async fn check_profile_attributes_filled(
+    pool: &PgPool,
+    user_id: &Uuid,
+) -> Result<i64, sqlx::Error> {
+    let row: (i64,) = sqlx::query_as(
+        r#"
         SELECT 
             (CASE WHEN name IS NULL THEN 1 ELSE 0 END +
              CASE WHEN bio IS NULL THEN 1 ELSE 0 END +
@@ -156,7 +170,8 @@ pub async fn check_profile_attributes_filled(pool: &PgPool, user_id: &Uuid) -> R
              CASE WHEN smokes IS NULL THEN 1 ELSE 0 END)::bigint AS missing_count
         FROM profiles
         WHERE user_id = $1
-    "#)
+    "#,
+    )
     .bind(user_id)
     .fetch_one(pool)
     .await?;
@@ -165,12 +180,17 @@ pub async fn check_profile_attributes_filled(pool: &PgPool, user_id: &Uuid) -> R
 }
 
 pub async fn get_profile(pool: &PgPool, user_id: &Uuid) -> Result<ProfileDetails, sqlx::Error> {
-    let row = sqlx::query_as::<_, ProfileDetails>(r#"
+    let row = sqlx::query_as::<_, ProfileDetails>(
+        r#"
         SELECT name, bio, birthdate::TEXT, pronouns, gender, sexuality, height,
             NULL as location, job, company, school, ethnicity, politics, religion,
             relationship_type, dating_intention, drinks, smokes
         FROM profiles WHERE user_id = $1
-    "#).bind(user_id).fetch_one(pool).await?;
+    "#,
+    )
+    .bind(user_id)
+    .fetch_one(pool)
+    .await?;
 
     Ok(row)
 }
@@ -181,33 +201,36 @@ pub async fn get_suggestions(
     pool: &PgPool,
     gender_preference: Option<Vec<String>>,
     user_id: &Uuid,
-) -> Result<Vec<ProfileDetails>, sqlx::Error> {
-    
+) -> Result<Vec<SuggestionProfile>, sqlx::Error> {
     // If gender_preference is provided, filter by it; otherwise return all profiles
     let profiles = if let Some(genders) = gender_preference {
         // Filter profiles where gender is in the preference list
-        sqlx::query_as::<_, ProfileDetails>(r#"
-            SELECT name, bio, birthdate::TEXT, pronouns, gender, sexuality, height,
+        sqlx::query_as::<_, SuggestionProfile>(
+            r#"
+            SELECT user_id::TEXT as user_id, name, bio, birthdate::TEXT, pronouns, gender, sexuality, height,
                 NULL as location, job, company, school, ethnicity, politics, religion,
                 relationship_type, dating_intention, drinks, smokes
             FROM profiles 
             WHERE gender = ANY($1) AND user_id != $2
             LIMIT 20
-        "#)
+        "#,
+        )
         .bind(&genders)
         .bind(user_id)
         .fetch_all(pool)
         .await?
     } else {
         // No preference - return all profiles except current user
-        sqlx::query_as::<_, ProfileDetails>(r#"
-            SELECT name, bio, birthdate::TEXT, pronouns, gender, sexuality, height,
+        sqlx::query_as::<_, SuggestionProfile>(
+            r#"
+            SELECT user_id::TEXT as user_id, name, bio, birthdate::TEXT, pronouns, gender, sexuality, height,
                 NULL as location, job, company, school, ethnicity, politics, religion,
                 relationship_type, dating_intention, drinks, smokes
             FROM profiles 
             WHERE user_id != $1
             LIMIT 20
-        "#)
+        "#,
+        )
         .bind(user_id)
         .fetch_all(pool)
         .await?

@@ -57,22 +57,46 @@ pub struct UserPrompt {
 pub struct ProfileDetails {
     pub name: Option<String>,
     pub bio: Option<String>,
-    pub birthdate: Option<String>,      // DATE - "1995-03-15"
-    pub pronouns: Option<String>,        // "she/her", "he/him"
-    pub gender: Option<String>,          // "Woman", "Man", "Non-binary"
-    pub sexuality: Option<String>,       // "Straight", "Gay", "Bisexual"
-    pub height: Option<i32>,             // in cm
-    pub location: Option<String>,        // Will need to convert to POINT
+    pub birthdate: Option<String>, // DATE - "1995-03-15"
+    pub pronouns: Option<String>,  // "she/her", "he/him"
+    pub gender: Option<String>,    // "Woman", "Man", "Non-binary"
+    pub sexuality: Option<String>, // "Straight", "Gay", "Bisexual"
+    pub height: Option<i32>,       // in cm
+    pub location: Option<String>,  // Will need to convert to POINT
     pub job: Option<String>,
     pub company: Option<String>,
     pub school: Option<String>,
     pub ethnicity: Option<String>,
     pub politics: Option<String>,
     pub religion: Option<String>,
-    pub relationship_type: Option<String>,  // "Monogamy"
-    pub dating_intention: Option<String>,   // "Long-term relationship"
-    pub drinks: Option<String>,             // "Socially", "No"
-    pub smokes: Option<String>,   
+    pub relationship_type: Option<String>, // "Monogamy"
+    pub dating_intention: Option<String>,  // "Long-term relationship"
+    pub drinks: Option<String>,            // "Socially", "No"
+    pub smokes: Option<String>,
+}
+
+/// Profile with user_id for feed suggestions
+#[derive(Serialize, Debug, sqlx::FromRow)]
+pub struct SuggestionProfile {
+    pub user_id: String,
+    pub name: Option<String>,
+    pub bio: Option<String>,
+    pub birthdate: Option<String>,
+    pub pronouns: Option<String>,
+    pub gender: Option<String>,
+    pub sexuality: Option<String>,
+    pub height: Option<i32>,
+    pub location: Option<String>,
+    pub job: Option<String>,
+    pub company: Option<String>,
+    pub school: Option<String>,
+    pub ethnicity: Option<String>,
+    pub politics: Option<String>,
+    pub religion: Option<String>,
+    pub relationship_type: Option<String>,
+    pub dating_intention: Option<String>,
+    pub drinks: Option<String>,
+    pub smokes: Option<String>,
 }
 
 #[derive(Serialize)]

@@ -37,7 +37,7 @@ pub async fn get_prompts(pool: web::Data<PgPool>, req: HttpRequest) -> impl Resp
             HttpResponse::Ok().json(prompts)
         }
         Err(e) => {
-            println!("Failed to get prompts: {:?}", e);
+            eprintln!("Failed to get prompts: {:?}", e);
             HttpResponse::InternalServerError().json(StatusResponse {
                 status: "error".to_string(),
                 message: Some("Failed to retrieve prompts".to_string()),
@@ -94,7 +94,7 @@ pub async fn create_prompt(
                     message: Some("Maximum 3 prompts allowed".to_string()),
                 })
             } else {
-                println!("Failed to create prompt: {:?}", e);
+                eprintln!("Failed to create prompt: {:?}", e);
                 HttpResponse::InternalServerError().json(StatusResponse {
                     status: "error".to_string(),
                     message: Some("Failed to create prompt".to_string()),
@@ -150,13 +150,21 @@ pub async fn update_prompt(
         });
     }
 
-    match prompt_queries::update_prompt(&pool, &user_id, display_order, &body.question, &body.answer).await {
+    match prompt_queries::update_prompt(
+        &pool,
+        &user_id,
+        display_order,
+        &body.question,
+        &body.answer,
+    )
+    .await
+    {
         Ok(_) => HttpResponse::Ok().json(StatusResponse {
             status: "success".to_string(),
             message: Some("Prompt updated successfully".to_string()),
         }),
         Err(e) => {
-            println!("Failed to update prompt: {:?}", e);
+            eprintln!("Failed to update prompt: {:?}", e);
             HttpResponse::InternalServerError().json(StatusResponse {
                 status: "error".to_string(),
                 message: Some("Failed to update prompt".to_string()),
@@ -201,7 +209,7 @@ pub async fn delete_prompt(
             message: Some("Prompt deleted successfully".to_string()),
         }),
         Err(e) => {
-            println!("Failed to delete prompt: {:?}", e);
+            eprintln!("Failed to delete prompt: {:?}", e);
             HttpResponse::InternalServerError().json(StatusResponse {
                 status: "error".to_string(),
                 message: Some("Failed to delete prompt".to_string()),

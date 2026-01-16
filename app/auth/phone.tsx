@@ -1,3 +1,4 @@
+import { useAuth } from "@/lib/context/AuthContext";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useState } from "react";
@@ -21,6 +22,7 @@ export let submittedPhoneNumber: string = "";
 
 export default function PhoneInputScreen() {
     const router = useRouter();
+    const { login } = useAuth();
     const [phoneNumber, setPhoneNumber] = useState("");
     const [isLoading, setIsLoading] = useState(false);
 
@@ -120,6 +122,7 @@ export default function PhoneInputScreen() {
 
                     {/* Footer Text */}
                     <Text style={styles.footerText}>
+
                         We will send you a text with a verification code. Message and data rates may apply.
                     </Text>
                 </View>
@@ -128,7 +131,9 @@ export default function PhoneInputScreen() {
                 <View style={styles.fabContainer}>
                     <TouchableOpacity
                         style={[styles.fab, (!phoneNumber || isLoading) && styles.fabDisabled]}
+
                         onPress={sendOtp}
+
                         disabled={!phoneNumber || isLoading}
                     >
                         {isLoading ? (
@@ -230,7 +235,7 @@ const styles = StyleSheet.create({
         width: 56,
         height: 56,
         borderRadius: 28,
-        backgroundColor: "#000", // Default active color
+        backgroundColor: "#000",
         justifyContent: "center",
         alignItems: "center",
         shadowColor: "#000",
@@ -240,7 +245,7 @@ const styles = StyleSheet.create({
         elevation: 5,
     },
     fabDisabled: {
-        backgroundColor: "#f0f0f0", // Greyed out
+        backgroundColor: "#f0f0f0",
         shadowOpacity: 0,
         elevation: 0,
     },
