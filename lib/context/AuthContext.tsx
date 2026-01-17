@@ -1,16 +1,35 @@
 import React, { createContext, ReactNode, useContext, useEffect, useState } from 'react';
-import { clearToken, getToken, setToken } from '../api/client';
-import { AuthResponse, getMyProfile, phoneLogin, phoneVerify, UserProfile } from '../api/endpoints';
+import { clearToken, setToken } from '../api/client';
+import { getMyProfile, UserProfile } from '../api/endpoints';
+import { Alert } from 'react-native';
+import { router } from 'expo-router';
+
+// Import Firebase auth functions
+import {
+    FirebaseUser,
+    googleSignIn,
+    sendPhoneOtp,
+    verifyPhoneOtp,
+    signOut as firebaseSignOut,
+    onAuthStateChange,
+    parseAuthError,
+} from '../auth/firebase-auth';
+import { FirebaseAuthTypes } from '@react-native-firebase/auth';
+
+// Re-export FirebaseUser type
+export type { FirebaseUser } from '../auth/firebase-auth';
 
 interface AuthContextType {
     isLoading: boolean;
     isAuthenticated: boolean;
-    user: AuthResponse['user'] | null;
+    firebaseUser: FirebaseUser | null;
+    token: string | null;
     profile: UserProfile | null;
 
     // Auth actions
-    login: (phone: string) => Promise<string>; // returns verification_id
-    verify: (verificationId: string, code: string) => Promise<AuthResponse>;
+    handleGoogleSignIn: () => Promise<void>;
+    sendOtp: (phone: string) => Promise<FirebaseAuthTypes.ConfirmationResult>;
+    verifyOtp: (confirmation: FirebaseAuthTypes.ConfirmationResult, code: string) => Promise<void>;
     logout: () => Promise<void>;
     refreshProfile: () => Promise<void>;
 }
@@ -20,66 +39,126 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
     const [isLoading, setIsLoading] = useState(true);
     const [isAuthenticated, setIsAuthenticated] = useState(false);
-    const [user, setUser] = useState<AuthResponse['user'] | null>(null);
+    const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
+    const [token, setTokenState] = useState<string | null>(null);
     const [profile, setProfile] = useState<UserProfile | null>(null);
 
-    // Check for existing token on mount
+    // Listen for Firebase auth state changes on mount
     useEffect(() => {
-        checkAuth();
+        console.log('[AuthContext] Setting up auth state listener...');
+
+        const unsubscribe = onAuthStateChange(async (user) => {
+            console.log('[AuthContext] Auth state changed:', user ? 'User logged in' : 'No user');
+
+            if (user) {
+                // User is signed in
+                const idToken = await user.getIdToken();
+                await setToken(idToken);
+                setTokenState(idToken);
+                setFirebaseUser({
+                    uid: user.uid,
+                    email: user.email,
+                    displayName: user.displayName,
+                    photoURL: user.photoURL,
+                });
+                setIsAuthenticated(true);
+            } else {
+                // User is signed out
+                await clearToken();
+                setTokenState(null);
+                setFirebaseUser(null);
+                setProfile(null);
+                setIsAuthenticated(false);
+            }
+
+            setIsLoading(false);
+        });
+
+        // Cleanup subscription
+        return unsubscribe;
     }, []);
 
-    const checkAuth = async () => {
+    // Google Sign-In handler
+    const handleGoogleSignIn = async (): Promise<void> => {
+        console.log('[AuthContext] handleGoogleSignIn called');
+
+        if (isAuthenticated) {
+            console.log('[AuthContext] Already authenticated, redirecting...');
+            router.replace('/(tabs)');
+            return;
+        }
+
         try {
-            const token = await getToken();
-            if (token) {
-                // Token exists, try to get profile
-                const profileData = await getMyProfile();
-                setProfile(profileData);
-                setIsAuthenticated(true);
+            const result = await googleSignIn();
+            console.log('[AuthContext] Google sign-in successful');
+
+            // Save token
+            await setToken(result.token);
+            setTokenState(result.token);
+            setFirebaseUser(result.user);
+            setIsAuthenticated(true);
+
+            router.replace('/(tabs)');
+        } catch (error: any) {
+            console.error('[AuthContext] Google sign-in error:', error);
+
+            const authError = parseAuthError(error);
+
+            if (authError.type === 'cancelled') {
+                // User cancelled, do nothing
+                return;
             }
-        } catch (error) {
-            // Token invalid or expired
-            await clearToken();
-        } finally {
-            setIsLoading(false);
+
+            Alert.alert('Sign In Error', authError.message);
         }
     };
 
-    const login = async (phone: string): Promise<string> => {
-        const response = await phoneLogin(phone);
-        return response.verification_id;
+    // Phone OTP handlers
+    const sendOtp = async (phone: string): Promise<FirebaseAuthTypes.ConfirmationResult> => {
+        console.log('[AuthContext] Sending OTP to:', phone);
+        return await sendPhoneOtp(phone);
     };
 
-    const verify = async (verificationId: string, code: string): Promise<AuthResponse> => {
-        const response = await phoneVerify(verificationId, code);
-        await setToken(response.token);
-        setUser(response.user);
-        setIsAuthenticated(true);
+    const verifyOtp = async (
+        confirmation: FirebaseAuthTypes.ConfirmationResult,
+        code: string
+    ): Promise<void> => {
+        console.log('[AuthContext] Verifying OTP...');
 
-        // Fetch profile after login
         try {
-            const profileData = await getMyProfile();
-            setProfile(profileData);
-        } catch {
-            // Profile may not exist yet for new users
-        }
+            const result = await verifyPhoneOtp(confirmation, code);
 
-        return response;
+            // Save token
+            await setToken(result.token);
+            setTokenState(result.token);
+            setFirebaseUser(result.user);
+            setIsAuthenticated(true);
+
+            console.log('[AuthContext] OTP verified successfully');
+        } catch (error: any) {
+            console.error('[AuthContext] OTP verification error:', error);
+            throw error;
+        }
     };
 
-    const logout = async () => {
+    // Logout handler
+    const logout = async (): Promise<void> => {
+        console.log('[AuthContext] Logging out...');
+        await firebaseSignOut();
         await clearToken();
-        setUser(null);
+        setFirebaseUser(null);
+        setTokenState(null);
         setProfile(null);
         setIsAuthenticated(false);
     };
 
-    const refreshProfile = async () => {
+    // Refresh profile from backend
+    const refreshProfile = async (): Promise<void> => {
         try {
             const profileData = await getMyProfile();
             setProfile(profileData);
         } catch (error) {
-            console.error('Failed to refresh profile:', error);
+            console.error('[AuthContext] Failed to refresh profile:', error);
         }
     };
 
@@ -88,10 +167,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             value={{
                 isLoading,
                 isAuthenticated,
-                user,
+                firebaseUser,
+                token,
                 profile,
-                login,
-                verify,
+                handleGoogleSignIn,
+                sendOtp,
+                verifyOtp,
                 logout,
                 refreshProfile,
             }}

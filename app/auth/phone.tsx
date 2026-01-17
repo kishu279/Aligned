@@ -14,7 +14,7 @@ import {
     View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import auth, { FirebaseAuthTypes } from '@react-native-firebase/auth';
+import { FirebaseAuthTypes } from '@react-native-firebase/auth';
 
 // Store confirmation globally so verify screen can access it
 export let phoneConfirmation: FirebaseAuthTypes.ConfirmationResult | null = null;
@@ -22,11 +22,11 @@ export let submittedPhoneNumber: string = "";
 
 export default function PhoneInputScreen() {
     const router = useRouter();
-    const { login } = useAuth();
+    const { sendOtp } = useAuth();
     const [phoneNumber, setPhoneNumber] = useState("");
     const [isLoading, setIsLoading] = useState(false);
 
-    const sendOtp = async () => {
+    const handleSendOtp = async () => {
         console.log('[PHONE] sendOtp called');
         console.log('[PHONE] Raw phone number:', phoneNumber);
 
@@ -46,25 +46,22 @@ export default function PhoneInputScreen() {
 
         setIsLoading(true);
         try {
-            console.log('[PHONE] Calling auth().signInWithPhoneNumber()...');
-            const confirmation = await auth().signInWithPhoneNumber(formattedNumber);
+            console.log('[PHONE] Calling sendOtp from AuthContext...');
+            const confirmation = await sendOtp(formattedNumber);
 
             console.log('[PHONE] SUCCESS: OTP sent!');
             console.log('[PHONE] Confirmation object received:', !!confirmation);
-            console.log('[PHONE] Verification ID:', confirmation.verificationId);
 
             // Store for verify screen to use
             phoneConfirmation = confirmation;
             submittedPhoneNumber = formattedNumber;
 
             console.log('[PHONE] Navigating to verify screen...');
-            // Navigate to verify screen
             router.push("/auth/verify");
         } catch (error: any) {
             console.log('[PHONE] ERROR sending OTP:');
             console.log('[PHONE] Error code:', error.code);
             console.log('[PHONE] Error message:', error.message);
-            console.log('[PHONE] Full error:', JSON.stringify(error, null, 2));
             Alert.alert(
                 "Error",
                 error.message || "Failed to send OTP. Please try again."
@@ -132,7 +129,7 @@ export default function PhoneInputScreen() {
                     <TouchableOpacity
                         style={[styles.fab, (!phoneNumber || isLoading) && styles.fabDisabled]}
 
-                        onPress={sendOtp}
+                        onPress={handleSendOtp}
 
                         disabled={!phoneNumber || isLoading}
                     >

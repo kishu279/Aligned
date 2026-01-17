@@ -1,6 +1,6 @@
 import { useAuth } from "@/lib/context/AuthContext";
 import { Ionicons } from "@expo/vector-icons";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
     ActivityIndicator,
@@ -18,8 +18,7 @@ import { phoneConfirmation, submittedPhoneNumber } from "./phone";
 
 export default function VerificationScreen() {
     const router = useRouter();
-    const { verify } = useAuth();
-    const params = useLocalSearchParams<{ verificationId: string; phone: string }>();
+    const { verifyOtp } = useAuth();
     const [code, setCode] = useState("");
     const [isLoading, setIsLoading] = useState(false);
 
@@ -27,7 +26,7 @@ export default function VerificationScreen() {
     console.log('[VERIFY] phoneConfirmation exists:', !!phoneConfirmation);
     console.log('[VERIFY] submittedPhoneNumber:', submittedPhoneNumber);
 
-    const verifyOtp = async (otpCode: string) => {
+    const handleVerifyOtp = async (otpCode: string) => {
         console.log('[VERIFY] verifyOtp called with code:', otpCode);
 
         if (!phoneConfirmation) {
@@ -36,17 +35,14 @@ export default function VerificationScreen() {
             return;
         }
 
-        console.log('[VERIFY] phoneConfirmation.verificationId:', phoneConfirmation.verificationId);
         console.log('[VERIFY] Starting verification...');
 
         setIsLoading(true);
         try {
-            console.log('[VERIFY] Calling phoneConfirmation.confirm()...');
-            const userCredential = await phoneConfirmation.confirm(otpCode);
+            console.log('[VERIFY] Calling verifyOtp from AuthContext...');
+            await verifyOtp(phoneConfirmation, otpCode);
 
             console.log('[VERIFY] SUCCESS: OTP verified!');
-            console.log('[VERIFY] User UID:', userCredential?.user?.uid);
-            console.log('[VERIFY] User phone:', userCredential?.user?.phoneNumber);
             console.log('[VERIFY] Navigating to interstitial...');
 
             // OTP verified successfully - navigate to next screen
@@ -55,7 +51,6 @@ export default function VerificationScreen() {
             console.log('[VERIFY] ERROR verifying OTP:');
             console.log('[VERIFY] Error code:', error.code);
             console.log('[VERIFY] Error message:', error.message);
-            console.log('[VERIFY] Full error:', JSON.stringify(error, null, 2));
             Alert.alert(
                 "Verification Failed",
                 error.message || "Invalid code. Please try again."
@@ -71,15 +66,14 @@ export default function VerificationScreen() {
         setCode(text);
         if (text.length === 6) {
             console.log('[VERIFY] 6 digits entered, auto-verifying...');
-            // Verify OTP when 6 digits entered
-            verifyOtp(text);
+            handleVerifyOtp(text);
         }
     };
 
     const handleNext = () => {
         console.log('[VERIFY] Next button pressed, code:', code);
         if (code.length === 6) {
-            verifyOtp(code);
+            handleVerifyOtp(code);
         }
     };
 
