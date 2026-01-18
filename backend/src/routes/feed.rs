@@ -8,6 +8,8 @@ use crate::models::inputs::Preferences;
 use crate::models::outputs::{FeedResponse, ProfileDetails, StatusResponse, UserProfile};
 
 pub async fn get_feed(pool: web::Data<PgPool>, req: HttpRequest) -> impl Responder {
+    println!("GET /feed invoked");
+
     let Some(claim) = req.extensions().get::<Claims>().cloned() else {
         return HttpResponse::Unauthorized().json(StatusResponse {
             status: "error".to_string(),

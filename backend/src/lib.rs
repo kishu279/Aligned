@@ -5,3 +5,4 @@ pub mod models;
 pub mod routes;
 pub mod jwtauth;
 pub mod db;
+pub mod firebaseauth;

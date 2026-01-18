@@ -1,3 +1,5 @@
+#![allow(unused)]
+
 use actix_web::{web, HttpMessage, HttpRequest, HttpResponse, Responder};
 use sqlx::PgPool;
 use uuid::Uuid;
@@ -7,6 +9,34 @@ use crate::db::user_queries;
 use crate::jwtauth::Claims;
 use crate::models::inputs::Preferences;
 use crate::models::outputs::StatusResponse;
+
+use firebase_auth::FirebaseUser;
+
+pub async fn create_user(req: HttpRequest) -> impl Responder {
+    // Try to get FirebaseUser from request extensions (set by middleware)
+    let user = match req.extensions().get::<FirebaseUser>().cloned() {
+        Some(u) => u,
+        None => {
+            return HttpResponse::Unauthorized().json(StatusResponse {
+                status: "error".to_string(),
+                message: Some("No Firebase authentication found".to_string()),
+            });
+        }
+    };
+
+    // Log user info
+    println!("Firebase User ID: {}", user.user_id);
+    println!("Firebase Email: {:?}", user.email);
+    println!("Firebase Name: {:?}", user.name);
+    // println!("Firebase Phone: {:?}", user.phone);
+    // println!("Firebase Photo URL: {:?}", user.photo_url);
+
+    
+    HttpResponse::Ok().json(StatusResponse {
+        status: "success".to_string(),
+        message: Some(format!("User {} successfully logged in", user.user_id))
+    })
+}
 
 pub async fn update_user_preference(pool: web::Data<PgPool>, req: HttpRequest, body: web::Json<Preferences>) -> impl Responder {
     let Some(claims) = req.extensions().get::<Claims>().cloned() else {

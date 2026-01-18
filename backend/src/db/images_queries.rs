@@ -1,3 +1,5 @@
+#![allow(unused)]
+
 use sqlx::PgPool;
 use uuid::Uuid;
 
