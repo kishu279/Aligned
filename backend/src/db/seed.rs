@@ -9,6 +9,7 @@ use crate::db::{user_queries, profile_queries};
 /// Sample profile data for seeding
 struct SeedProfile {
     phone: String,
+    email: String,
     name: String,
     pronouns: String,
     gender: String,
@@ -42,6 +43,7 @@ fn get_seed_profiles() -> Vec<SeedProfile> {
         // === WOMEN ===
         SeedProfile {
             phone: "+1111111111".to_string(),
+            email: "ana@example.com".to_string(),
             name: "Ana".to_string(),
             pronouns: "she/her".to_string(),
             gender: "Woman".to_string(),
@@ -66,6 +68,7 @@ fn get_seed_profiles() -> Vec<SeedProfile> {
         },
         SeedProfile {
             phone: "+2222222222".to_string(),
+            email: "scarlett@example.com".to_string(),
             name: "Scarlett".to_string(),
             pronouns: "she/her".to_string(),
             gender: "Woman".to_string(),
@@ -90,6 +93,7 @@ fn get_seed_profiles() -> Vec<SeedProfile> {
         },
         SeedProfile {
             phone: "+3333333333".to_string(),
+            email: "elizabeth@example.com".to_string(),
             name: "Elizabeth".to_string(),
             pronouns: "she/her".to_string(),
             gender: "Woman".to_string(),
@@ -114,6 +118,7 @@ fn get_seed_profiles() -> Vec<SeedProfile> {
         },
         SeedProfile {
             phone: "+4444444444".to_string(),
+            email: "gal@example.com".to_string(),
             name: "Gal".to_string(),
             pronouns: "she/her".to_string(),
             gender: "Woman".to_string(),
@@ -138,6 +143,7 @@ fn get_seed_profiles() -> Vec<SeedProfile> {
         },
         SeedProfile {
             phone: "+5555555555".to_string(),
+            email: "sadie@example.com".to_string(),
             name: "Sadie".to_string(),
             pronouns: "she/her".to_string(),
             gender: "Woman".to_string(),
@@ -162,6 +168,7 @@ fn get_seed_profiles() -> Vec<SeedProfile> {
         },
         SeedProfile {
             phone: "+6666666666".to_string(),
+            email: "disha@example.com".to_string(),
             name: "Disha".to_string(),
             pronouns: "she/her".to_string(),
             gender: "Woman".to_string(),
@@ -187,6 +194,7 @@ fn get_seed_profiles() -> Vec<SeedProfile> {
         // === MEN ===
         SeedProfile {
             phone: "+7777777777".to_string(),
+            email: "chrise@example.com".to_string(),
             name: "Chris E".to_string(),
             pronouns: "he/him".to_string(),
             gender: "Man".to_string(),
@@ -211,6 +219,7 @@ fn get_seed_profiles() -> Vec<SeedProfile> {
         },
         SeedProfile {
             phone: "+8888888888".to_string(),
+            email: "chrish@example.com".to_string(),
             name: "Chris H".to_string(),
             pronouns: "he/him".to_string(),
             gender: "Man".to_string(),
@@ -235,6 +244,7 @@ fn get_seed_profiles() -> Vec<SeedProfile> {
         },
         SeedProfile {
             phone: "+9999999999".to_string(),
+            email: "henry@example.com".to_string(),
             name: "Henry".to_string(),
             pronouns: "he/him".to_string(),
             gender: "Man".to_string(),
@@ -259,6 +269,7 @@ fn get_seed_profiles() -> Vec<SeedProfile> {
         },
         SeedProfile {
             phone: "+1010101010".to_string(),
+            email: "hrithik@example.com".to_string(),
             name: "Hrithik".to_string(),
             pronouns: "he/him".to_string(),
             gender: "Man".to_string(),
@@ -283,6 +294,7 @@ fn get_seed_profiles() -> Vec<SeedProfile> {
         },
         SeedProfile {
             phone: "+1111011110".to_string(),
+            email: "robert@example.com".to_string(),
             name: "Robert".to_string(),
             pronouns: "he/him".to_string(),
             gender: "Man".to_string(),
@@ -307,6 +319,7 @@ fn get_seed_profiles() -> Vec<SeedProfile> {
         },
         SeedProfile {
             phone: "+1212121212".to_string(),
+            email: "alex@example.com".to_string(),
             name: "Alex".to_string(),
             pronouns: "he/him".to_string(),
             gender: "Man".to_string(),
@@ -395,7 +408,7 @@ pub async fn seed_database(pool: &PgPool) -> Result<(), sqlx::Error> {
     
     for seed in &profiles {
         // Get or create user (won't fail if user already exists)
-        let (user_id, is_new) = user_queries::get_or_create_user(pool, &seed.phone).await?;
+        let (user_id, is_new) = user_queries::get_or_create_user(pool, &seed.phone, &seed.email).await?;
         
         // Parse user_id to Uuid
         let user_uuid = Uuid::parse_str(&user_id).expect("Invalid UUID from get_or_create_user");

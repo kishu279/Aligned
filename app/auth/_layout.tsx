@@ -7,6 +7,7 @@ export default function AuthLayout() {
             <Stack.Screen name="verify" />
             <Stack.Screen name="interstitial" options={{ animation: 'fade' }} />
             <Stack.Screen name="name" />
+            <Stack.Screen name="details" />
         </Stack>
     );
 }

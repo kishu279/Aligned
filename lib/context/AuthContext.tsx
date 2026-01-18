@@ -1,6 +1,6 @@
 import React, { createContext, ReactNode, useContext, useEffect, useState } from 'react';
 import { clearToken, setToken } from '../api/client';
-import { getMyProfile, UserProfile } from '../api/endpoints';
+import { checkUserExists as checkUserExistsApi, getMyProfile, UserProfile } from '../api/endpoints';
 import { Alert } from 'react-native';
 import { router } from 'expo-router';
 
@@ -31,7 +31,8 @@ interface AuthContextType {
     sendOtp: (phone: string) => Promise<FirebaseAuthTypes.ConfirmationResult>;
     verifyOtp: (confirmation: FirebaseAuthTypes.ConfirmationResult, code: string) => Promise<void>;
     logout: () => Promise<void>;
-    refreshProfile: () => Promise<void>;
+    checkUserExists: (phone?: string, email?: string) => Promise<'exists' | 'not_found' | 'error'>;
+    // refreshProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -62,6 +63,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     photoURL: user.photoURL,
                 });
                 setIsAuthenticated(true);
+
+                console.log("DEBUG: TOKEN", idToken);
+
             } else {
                 // User is signed out
                 await clearToken();
@@ -98,7 +102,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setFirebaseUser(result.user);
             setIsAuthenticated(true);
 
-            router.replace('/(tabs)');
+            // Check if user exists in our database
+            const email = result.user.email;
+            if (email) {
+                console.log('[AuthContext] Checking if user exists in DB with email:', email);
+                const userStatus = await checkUserExists(undefined, email);
+
+                if (userStatus === 'exists') {
+                    // User exists, redirect to profile/tabs
+                    console.log('[AuthContext] User exists, redirecting to tabs');
+                    router.replace('/(tabs)/profile');
+                } else {
+                    // User not found, redirect to details page to complete registration
+                    console.log('[AuthContext] User not found, redirecting to details page');
+                    router.push({
+                        pathname: '/auth/details',
+                        params: { email: email }
+                    });
+                }
+            } else {
+                // No email available, go to details page anyway
+                console.log('[AuthContext] No email from Google, redirecting to details');
+                router.push('/auth/details');
+            }
         } catch (error: any) {
             console.error('[AuthContext] Google sign-in error:', error);
 
@@ -152,15 +178,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setIsAuthenticated(false);
     };
 
-    // Refresh profile from backend
-    const refreshProfile = async (): Promise<void> => {
+    // Check if user exists in the database
+    const checkUserExists = async (phone?: string, email?: string): Promise<'exists' | 'not_found' | 'error'> => {
+        console.log('[AuthContext] Checking if user exists:', { phone, email });
         try {
-            const profileData = await getMyProfile();
-            setProfile(profileData);
+            const response = await checkUserExistsApi({ phone, email });
+
+            if (response.status === 'exists') {
+                console.log('[AuthContext] User exists');
+                return 'exists';
+            } else if (response.status === 'not_found') {
+                console.log('[AuthContext] User not found');
+                return 'not_found';
+            } else {
+                console.error('[AuthContext] Error checking user:', response.message);
+                return 'error';
+            }
         } catch (error) {
-            console.error('[AuthContext] Failed to refresh profile:', error);
+            console.error('[AuthContext] Failed to check user exists:', error);
+            return 'error';
         }
     };
+
+    // Refresh profile from backend
+    // const refreshProfile = async (): Promise<void> => {
+    //     try {
+    //         const profileData = await getMyProfile();
+    //         setProfile(profileData);
+    //     } catch (error) {
+    //         console.error('[AuthContext] Failed to refresh profile:', error);
+    //     }
+    // };
 
     return (
         <AuthContext.Provider
@@ -174,7 +222,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 sendOtp,
                 verifyOtp,
                 logout,
-                refreshProfile,
+                checkUserExists,
+                // refreshProfile,
             }}
         >
             {children}

@@ -46,7 +46,10 @@ export default function VerificationScreen() {
             console.log('[VERIFY] Navigating to interstitial...');
 
             // OTP verified successfully - navigate to next screen
-            router.push("/auth/interstitial");
+            router.push({
+                pathname: "/auth/details",
+                params: { phone: submittedPhoneNumber },
+            });
         } catch (error: any) {
             console.log('[VERIFY] ERROR verifying OTP:');
             console.log('[VERIFY] Error code:', error.code);
@@ -55,6 +58,8 @@ export default function VerificationScreen() {
                 "Verification Failed",
                 error.message || "Invalid code. Please try again."
             );
+
+            router.push("/")
         } finally {
             console.log('[VERIFY] verifyOtp completed, setting loading to false');
             setIsLoading(false);

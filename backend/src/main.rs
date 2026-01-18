@@ -85,8 +85,11 @@ async fn main() -> std::io::Result<()> {
             // .app_data(app_state.clone())
             // .app_data(app_firebase.clone())
             .wrap(firebaseauth::middleware::FirebaseAuthMiddleware)
+            .app_data(web::Data::new(pool.clone()))
             .route("/test", web::get().to(health_check))  // Test route in /api/v1 scope
             .route("/user/create", web::post().to(user::create_user))
+            .route("/user/check", web::post().to(user::check_user_exists))
+            .route("/user/get", web::post().to(user::get_user))
             // .wrap(auth)
             .route("/profile/me", web::get().to(profile::get_profile))
             .route("/profile", web::post().to(profile::update_profile))

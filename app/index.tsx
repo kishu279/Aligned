@@ -45,7 +45,21 @@ export default function LoginScreen() {
 
     const handleCreateAccount = () => {
         // Bypass for now - go directly to main app
-        router.replace("/(tabs)");
+        Animated.parallel([
+            Animated.timing(fadeAnim, {
+                toValue: 0,
+                duration: 200,
+                useNativeDriver: true,
+            }),
+            Animated.timing(slideAnim, {
+                toValue: 1,
+                duration: 300,
+                useNativeDriver: true,
+            }),
+        ]).start(() => {
+            setShowSignInOptions(true);
+        });
+        // router.replace("/(tabs)");
     };
 
     const handleSignIn = () => {

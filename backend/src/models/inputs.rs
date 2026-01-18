@@ -12,6 +12,18 @@ pub struct PhoneVerifyRequest {
 }
 
 #[derive(Deserialize)]
+pub struct CreateUserRequest {
+    pub phone: Option<String>,
+    pub email: Option<String>,
+}
+
+#[derive(Deserialize)]
+pub struct CheckUserExistsRequest {
+    pub phone: Option<String>,
+    pub email: Option<String>,
+}
+
+#[derive(Deserialize)]
 pub struct UpdateUserRequest {
     pub email: Option<String>,
     pub phone: Option<String>,

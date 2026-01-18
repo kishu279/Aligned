@@ -1,3 +1,11 @@
+// ============================================================
+// DEPRECATED: This auth module is not currently in use.
+// Firebase handles phone authentication on the frontend.
+// The user is created via POST /api/v1/user/create with Firebase token.
+// ============================================================
+
+#![allow(unused)]
+
 use crate::models::inputs::{PhoneLoginRequest, PhoneVerifyRequest};
 use crate::models::outputs::{AuthResponse, LoginResponse, StatusResponse, UserSummary};
 use crate::models::state::AppState;
@@ -11,7 +19,6 @@ pub async fn phone_login(body: web::Json<PhoneLoginRequest>, _pool: web::Data<Pg
     println!("Auth: Phone Login for {}", body.phone);
     
     let verification_id = uuid::Uuid::new_v4().to_string();
-    // let verification_code = "123456"; // TODO: Generate a random code
     
     // Store verification_id -> phone in app state
     state.pending_verifications.lock().unwrap().insert(verification_id.clone(), body.phone.clone());
@@ -22,6 +29,11 @@ pub async fn phone_login(body: web::Json<PhoneLoginRequest>, _pool: web::Data<Pg
         verification_id,
     })
 }
+
+/*
+// DEPRECATED: This function used get_or_create_user_by_phone which is no longer available
+// Since both email and phone are now required, this flow doesn't work.
+// Use Firebase auth + POST /api/v1/user/create instead.
 
 pub async fn phone_verify(body: web::Json<PhoneVerifyRequest>, pool: web::Data<PgPool>, state: web::Data<AppState>) -> impl Responder {
     println!(
@@ -49,7 +61,8 @@ pub async fn phone_verify(body: web::Json<PhoneVerifyRequest>, pool: web::Data<P
     }
     
     // Step 1: Get or create the user in the database
-    let (user_id, is_new_user) = match db::user_queries::get_or_create_user(&pool, &phone).await {
+    // DEPRECATED: This function requires only phone, but now both email and phone are required
+    let (user_id, is_new_user) = match db::user_queries::get_or_create_user_by_phone(&pool, &phone).await {
         Ok(result) => result,
         Err(e) => {
             println!("Failed to get/create user: {:?}", e);
@@ -70,9 +83,6 @@ pub async fn phone_verify(body: web::Json<PhoneVerifyRequest>, pool: web::Data<P
     // Step 3: Generate token and return response
     match Claims::create_new_token(&my_claim) {
         Ok(token) => {
-            // Optionally clean up verification state
-            // state.pending_verifications.lock().unwrap().remove(&body.verification_id);
-
             HttpResponse::Ok().json(AuthResponse {
                 token,
                 user: UserSummary {
@@ -90,4 +100,4 @@ pub async fn phone_verify(body: web::Json<PhoneVerifyRequest>, pool: web::Data<P
         }
     }
 }
-
+*/

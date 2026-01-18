@@ -18,6 +18,7 @@ const icons = {
   heart: require("@/assets/icons/heart.png"),
   chat: require("@/assets/icons/chat.png"),
   profile: require("@/assets/icons/profile.png"),
+  debug: require("@/assets/icons/debug.png"),
 };
 
 type TabIconProps = {
@@ -191,6 +192,15 @@ export default function TabsLayout() {
           ),
         }}
       />
+
+      <Tabs.Screen name="debug"
+        options={{
+          title: "debug",
+          headerShown: false,
+          tabBarIcon: ({ focused }) => (
+            <TabIcon focused={focused} iconName="debug" />
+          ),
+        }} />
     </Tabs>
   );
 }

@@ -1,7 +1,8 @@
 import * as SecureStore from 'expo-secure-store';
 
-// Use your computer's local IP (from Expo output) so phone can reach the backend
-const API_BASE_URL = 'http://192.168.1.3:8080';
+// Using ADB reverse port forwarding: `adb reverse tcp:8080 tcp:8080`
+// This lets the Android device access localhost:8080 through USB
+const API_BASE_URL = 'http://localhost:8080';
 
 // Token storage
 const TOKEN_KEY = 'auth_token';
