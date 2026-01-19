@@ -157,16 +157,8 @@ export async function checkUserExists(data: CheckUserExistsRequest): Promise<Sta
 }
 
 // Feed
-export interface FeedRequest {
-  email?: string;
-  phone?: string;
-}
-
-export async function getFeed(data: FeedRequest): Promise<FeedResponse> {
-  return apiRequest<FeedResponse>('/api/v1/feed', {
-    method: 'POST',
-    body: data,
-  });
+export async function getFeed(): Promise<FeedResponse> {
+  return apiRequest<FeedResponse>('/api/v1/feed');
 }
 
 // Interactions

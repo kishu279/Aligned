@@ -109,11 +109,3 @@ pub struct Preferences {
     pub ethnicity_preference: Option<Vec<String>>,
     pub religion_preference: Option<Vec<String>>,
 }
-
-/// Request to get feed (identifies user by email or phone)
-#[derive(Deserialize, Debug)]
-#[serde(rename_all = "camelCase")]
-pub struct FeedRequest {
-    pub email: Option<String>,
-    pub phone: Option<String>,
-}

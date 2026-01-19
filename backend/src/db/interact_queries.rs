@@ -5,7 +5,7 @@ use crate::models::inputs::InteractRequest;
 
 pub async fn interact(
     pool: &PgPool,
-    from_user_id: &Uuid,
+    from_user_id: &Uuid,  
     to_user_id: &Uuid,
     body: &InteractRequest,
 ) -> Result<(), sqlx::Error> {

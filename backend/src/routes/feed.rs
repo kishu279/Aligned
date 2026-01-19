@@ -1,18 +1,31 @@
-use actix_web::{HttpResponse, Responder, web};
+use actix_web::{HttpResponse, Responder, web, HttpRequest, HttpMessage};
 use sqlx::PgPool;
 
 use crate::db::{profile_queries, user_queries};
-use crate::models::inputs::{Preferences, FeedRequest};
+use crate::models::inputs::Preferences;
 use crate::models::outputs::{FeedResponse, ProfileDetails, StatusResponse, UserProfile};
 
-pub async fn get_feed(pool: web::Data<PgPool>, body: web::Json<FeedRequest>) -> impl Responder {
-    println!("POST /feed invoked");
+use firebase_auth::FirebaseUser;
+
+pub async fn get_feed(pool: web::Data<PgPool>, req: HttpRequest) -> impl Responder {
+    println!("GET /feed invoked");
+
+    let user: FirebaseUser = match req.extensions().get::<FirebaseUser>().cloned() {
+        Some(user) => user,
+        None => return HttpResponse::Unauthorized().json(StatusResponse {
+            status: "error".to_string(),
+            message: Some("Unauthorized".to_string()),
+        })
+    };
+
+    println!("User details {:?}", user.email);
+    // println!("User details {:?}", user.phone); // TODO: Add phone support
 
     // Find user by email or phone
     let (user_id, preferences_opt) = match user_queries::get_user_with_preferences_by_identifier(
         &pool,
-        body.email.as_deref(),
-        body.phone.as_deref(),
+        user.email.as_deref(),
+        None,
     ).await {
         Ok(Some((uid, prefs))) => (uid, prefs),
         Ok(None) => {

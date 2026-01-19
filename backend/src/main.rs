@@ -84,7 +84,7 @@ async fn main() -> std::io::Result<()> {
             .route("/profile/images", web::post().to(profile::upload_profile_images))
             .route("/profile/finalize", web::post().to(profile::finalize_profile))
             .route("/profile", web::delete().to(profile::delete_account))
-            .route("/feed", web::post().to(feed::get_feed))
+            .route("/feed", web::get().to(feed::get_feed))
             .route("/interact", web::post().to(interactions::interact))
             .route("/matches", web::get().to(matches::get_matches))
             .route(

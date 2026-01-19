@@ -1,25 +1,35 @@
 use crate::db::interact_queries;
-use crate::jwtauth::Claims;
 use crate::models::inputs::InteractRequest;
 use crate::models::outputs::StatusResponse;
 use actix_web::{HttpMessage, HttpRequest, HttpResponse, Responder, web};
 use sqlx::PgPool;
 use uuid::Uuid;
 
+use firebase_auth::FirebaseUser;
+
 pub async fn interact(body: web::Json<InteractRequest>, pool: web::Data<PgPool>, req: HttpRequest) -> impl Responder {
-    let claims = match req.extensions().get::<Claims>().cloned() {
-        Some(c) => c,
+    println!("invoked /interactions");
+    
+    // getting the userid 
+    let user: FirebaseUser = match req.extensions().get::<FirebaseUser>().cloned() {
+        Some(user) => user,
+        // NOT POSSIBLE AS IS IS PASSED FROM THE MIDDLEWARE
         None => return HttpResponse::Unauthorized().json(StatusResponse {
             status: "error".to_string(),
             message: Some("Unauthorized".to_string()),
         })
     };
 
-    let user_id = match Uuid::parse_str(&claims.sub) {
-        Ok(id) => id,
-        Err(_) => return HttpResponse::Unauthorized().json(StatusResponse {
+    // Get user ID from database using Firebase email
+    let user_id = match crate::db::user_queries::get_user_id_by_email(&pool, user.email.as_deref()).await {
+        Ok(Some(id)) => id,
+        Ok(None) => return HttpResponse::NotFound().json(StatusResponse {
             status: "error".to_string(),
-            message: Some("Invalid user ID".to_string()),
+            message: Some("User not found".to_string()),
+        }),
+        Err(e) => return HttpResponse::InternalServerError().json(StatusResponse {
+            status: "error".to_string(),
+            message: Some(format!("Failed to get user: {}", e)),
         })
     };
 

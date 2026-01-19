@@ -24,17 +24,14 @@ export default function Index() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const scrollViewRef = useRef<ScrollView>(null);
-  const [user, setUser] = React.useState<null>(null);
 
   const currentProfile = profiles[currentIndex];
 
-  // Fetch feed from API
+  // Fetch feed from API (user identified via Firebase token)
   const fetchFeed = useCallback(async () => {
     try {
       setError(null);
-      const response = await getFeed({
-        email: "souravpoddar6677@gmail.com"
-      });
+      const response = await getFeed();
       setProfiles(response.profiles);
       setCurrentIndex(0);
     } catch (err) {

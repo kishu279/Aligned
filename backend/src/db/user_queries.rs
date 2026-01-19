@@ -176,6 +176,21 @@ pub async fn get_user_preferences(pool: &PgPool, user_id: &Uuid) -> Result<Optio
     Ok(row.map(|r| r.0))
 }
 
+/// Get user ID by email
+pub async fn get_user_id_by_email(pool: &PgPool, email: Option<&str>) -> Result<Option<Uuid>, sqlx::Error> {
+    if let Some(e) = email {
+        let row: Option<(Uuid,)> = sqlx::query_as(
+            "SELECT id FROM users WHERE email = $1"
+        )
+        .bind(e)
+        .fetch_optional(pool)
+        .await?;
+        
+        return Ok(row.map(|r| r.0));
+    }
+    Ok(None)
+}
+
 /// Get user id and preferences by email or phone (serially)
 /// Returns (user_id, preferences) if found
 pub async fn get_user_with_preferences_by_identifier(
