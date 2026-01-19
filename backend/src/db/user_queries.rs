@@ -176,15 +176,98 @@ pub async fn get_user_preferences(pool: &PgPool, user_id: &Uuid) -> Result<Optio
     Ok(row.map(|r| r.0))
 }
 
-/// Update user preferences
-pub async fn update_user_preferences(pool: &PgPool, user_id: &Uuid, preferences: serde_json::Value) -> Result<(), sqlx::Error> {
-    sqlx::query(
-        "UPDATE users SET preferences = $2 WHERE id = $1"
-    )
-    .bind(user_id)
-    .bind(preferences)
-    .execute(pool)
-    .await?;
+/// Get user id and preferences by email or phone (serially)
+/// Returns (user_id, preferences) if found
+pub async fn get_user_with_preferences_by_identifier(
+    pool: &PgPool,
+    email: Option<&str>,
+    phone: Option<&str>,
+) -> Result<Option<(Uuid, Option<serde_json::Value>)>, sqlx::Error> {
+    // Try email first
+    if let Some(e) = email {
+        let row: Option<(Uuid, Option<serde_json::Value>)> = sqlx::query_as(
+            "SELECT id, preferences FROM users WHERE email = $1"
+        )
+        .bind(e)
+        .fetch_optional(pool)
+        .await?;
+        
+        if row.is_some() {
+            return Ok(row);
+        }
+    }
+    
+    // Try phone
+    if let Some(p) = phone {
+        let row: Option<(Uuid, Option<serde_json::Value>)> = sqlx::query_as(
+            "SELECT id, preferences FROM users WHERE phone = $1"
+        )
+        .bind(p)
+        .fetch_optional(pool)
+        .await?;
+        
+        if row.is_some() {
+            return Ok(row);
+        }
+    }
+    
+    Ok(None)
+}
 
-    Ok(())
+/// Update user preferences
+/// Finds user by: user_id first, then email, then phone (serially)
+pub async fn update_user_preferences(
+    pool: &PgPool, 
+    user_id: Option<&Uuid>, 
+    email: Option<&str>, 
+    phone: Option<&str>, 
+    preferences: serde_json::Value
+) -> Result<(), sqlx::Error> {
+    // Try to find user by user_id first
+    if let Some(uid) = user_id {
+        let result = sqlx::query(
+            "UPDATE users SET preferences = $2 WHERE id = $1"
+        )
+        .bind(uid)
+        .bind(&preferences)
+        .execute(pool)
+        .await?;
+        
+        if result.rows_affected() > 0 {
+            return Ok(());
+        }
+    }
+    
+    // Try to find user by email
+    if let Some(e) = email {
+        let result = sqlx::query(
+            "UPDATE users SET preferences = $2 WHERE email = $1"
+        )
+        .bind(e)
+        .bind(&preferences)
+        .execute(pool)
+        .await?;
+        
+        if result.rows_affected() > 0 {
+            return Ok(());
+        }
+    }
+    
+    // Try to find user by phone
+    if let Some(p) = phone {
+        let result = sqlx::query(
+            "UPDATE users SET preferences = $2 WHERE phone = $1"
+        )
+        .bind(p)
+        .bind(&preferences)
+        .execute(pool)
+        .await?;
+        
+        if result.rows_affected() > 0 {
+            return Ok(());
+        }
+    }
+    
+    // No user found with any identifier
+    Err(sqlx::Error::RowNotFound)
 }

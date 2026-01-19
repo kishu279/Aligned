@@ -84,23 +84,7 @@ pub async fn create_user(
     }
 }
 
-pub async fn update_user_preference(pool: web::Data<PgPool>, req: HttpRequest, body: web::Json<Preferences>) -> impl Responder {
-    let Some(claims) = req.extensions().get::<Claims>().cloned() else {
-        return HttpResponse::Unauthorized().json(StatusResponse {
-            status: "error".to_string(),
-            message: Some("No authentication claims found".to_string()),
-        });
-    };
-
-    let user_id = match Uuid::parse_str(&claims.sub) {
-        Ok(id) => id,
-        Err(_) => {
-            return HttpResponse::BadRequest().json(StatusResponse {
-                status: "error".to_string(),
-                message: Some("Invalid user ID format".to_string()),
-            });
-        }
-    };
+pub async fn update_user_preference(pool: web::Data<PgPool>, _req: HttpRequest, body: web::Json<Preferences>) -> impl Responder {
 
     // Convert Preferences struct to JSON for storage
     let preferences_json = json!({
@@ -111,10 +95,23 @@ pub async fn update_user_preference(pool: web::Data<PgPool>, req: HttpRequest, b
         "religionPreference": body.religion_preference
     });
 
-    match user_queries::update_user_preferences(&pool, &user_id, preferences_json).await {
+    println!("User {:?}", preferences_json);
+
+    // Update preferences - will find user by email, then phone
+    match user_queries::update_user_preferences(
+        &pool, 
+        None,  // No user_id from JWT - find by email/phone
+        body.email.as_deref(), 
+        body.phone.as_deref(), 
+        preferences_json
+    ).await {
         Ok(_) => HttpResponse::Ok().json(StatusResponse {
             status: "success".to_string(),
             message: Some("User preferences updated successfully".to_string()),
+        }),
+        Err(sqlx::Error::RowNotFound) => HttpResponse::NotFound().json(StatusResponse {
+            status: "error".to_string(),
+            message: Some("User not found".to_string()),
         }),
         Err(e) => HttpResponse::InternalServerError().json(StatusResponse {
             status: "error".to_string(),

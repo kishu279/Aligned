@@ -24,6 +24,7 @@ export default function Index() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const scrollViewRef = useRef<ScrollView>(null);
+  const [user, setUser] = React.useState<null>(null);
 
   const currentProfile = profiles[currentIndex];
 
@@ -31,7 +32,9 @@ export default function Index() {
   const fetchFeed = useCallback(async () => {
     try {
       setError(null);
-      const response = await getFeed();
+      const response = await getFeed({
+        email: "souravpoddar6677@gmail.com"
+      });
       setProfiles(response.profiles);
       setCurrentIndex(0);
     } catch (err) {

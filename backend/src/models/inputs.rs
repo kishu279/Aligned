@@ -99,9 +99,21 @@ pub struct AgeRange {
 #[derive(Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct Preferences {
+    // User identification (at least one required to find the user)
+    pub email: Option<String>,
+    pub phone: Option<String>,
+    // Preferences
     pub age_range: Option<AgeRange>,
     pub distance_max: Option<i32>,
     pub gender_preference: Option<Vec<String>>,
     pub ethnicity_preference: Option<Vec<String>>,
     pub religion_preference: Option<Vec<String>>,
+}
+
+/// Request to get feed (identifies user by email or phone)
+#[derive(Deserialize, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct FeedRequest {
+    pub email: Option<String>,
+    pub phone: Option<String>,
 }

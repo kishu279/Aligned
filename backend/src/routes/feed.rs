@@ -1,42 +1,36 @@
-use actix_web::{HttpMessage, HttpRequest, HttpResponse, Responder, web};
+use actix_web::{HttpResponse, Responder, web};
 use sqlx::PgPool;
-use uuid::Uuid;
 
 use crate::db::{profile_queries, user_queries};
-use crate::jwtauth::Claims;
-use crate::models::inputs::Preferences;
+use crate::models::inputs::{Preferences, FeedRequest};
 use crate::models::outputs::{FeedResponse, ProfileDetails, StatusResponse, UserProfile};
 
-pub async fn get_feed(pool: web::Data<PgPool>, req: HttpRequest) -> impl Responder {
-    println!("GET /feed invoked");
+pub async fn get_feed(pool: web::Data<PgPool>, body: web::Json<FeedRequest>) -> impl Responder {
+    println!("POST /feed invoked");
 
-    let Some(claim) = req.extensions().get::<Claims>().cloned() else {
-        return HttpResponse::Unauthorized().json(StatusResponse {
-            status: "error".to_string(),
-            message: Some("No authentication claims found".to_string()),
-        });
-    };
-
-    let Ok(user_id) = Uuid::parse_str(&claim.sub) else {
-        return HttpResponse::Unauthorized().json(StatusResponse {
-            status: "error".to_string(),
-            message: Some("Invalid user ID format".to_string()),
-        });
-    };
-
-    // Get user's preferences (from users table - JSONB field)
-    let preferences = match user_queries::get_user_preferences(&pool, &user_id).await {
-        Ok(prefs) => prefs,
+    // Find user by email or phone
+    let (user_id, preferences_opt) = match user_queries::get_user_with_preferences_by_identifier(
+        &pool,
+        body.email.as_deref(),
+        body.phone.as_deref(),
+    ).await {
+        Ok(Some((uid, prefs))) => (uid, prefs),
+        Ok(None) => {
+            return HttpResponse::NotFound().json(StatusResponse {
+                status: "error".to_string(),
+                message: Some("User not found".to_string()),
+            });
+        }
         Err(e) => {
             return HttpResponse::InternalServerError().json(StatusResponse {
                 status: "error".to_string(),
-                message: Some(format!("Failed to get preferences: {}", e)),
+                message: Some(format!("Failed to find user: {}", e)),
             });
         }
     };
 
     // Check if preferences exist
-    let Some(prefs_json) = preferences else {
+    let Some(prefs_json) = preferences_opt else {
         return HttpResponse::BadRequest().json(StatusResponse {
             status: "error".to_string(),
             message: Some("User has no preferences set".to_string()),

@@ -75,6 +75,8 @@ export interface StatusResponse {
 
 // Preferences
 export interface Preferences {
+  email?: string;
+  phone?: string;
   ageRange?: { min: number; max: number };
   distanceMax?: number;
   genderPreference?: string[];
@@ -130,13 +132,7 @@ export async function deleteAccount(): Promise<StatusResponse> {
 export async function updatePreferences(prefs: Preferences): Promise<StatusResponse> {
   return apiRequest<StatusResponse>('/api/v1/user/preferences', {
     method: 'POST',
-    body: {
-      age_range: prefs.ageRange,
-      distance_max: prefs.distanceMax,
-      gender_preference: prefs.genderPreference,
-      ethnicity_preference: prefs.ethnicityPreference,
-      religion_preference: prefs.religionPreference,
-    },
+    body: prefs,  // Already in camelCase
   });
 }
 
@@ -161,8 +157,16 @@ export async function checkUserExists(data: CheckUserExistsRequest): Promise<Sta
 }
 
 // Feed
-export async function getFeed(): Promise<FeedResponse> {
-  return apiRequest<FeedResponse>('/api/v1/feed');
+export interface FeedRequest {
+  email?: string;
+  phone?: string;
+}
+
+export async function getFeed(data: FeedRequest): Promise<FeedResponse> {
+  return apiRequest<FeedResponse>('/api/v1/feed', {
+    method: 'POST',
+    body: data,
+  });
 }
 
 // Interactions
