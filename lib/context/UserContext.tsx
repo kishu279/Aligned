@@ -47,7 +47,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
     const [email, setEmail] = useState<string | null>(null);
     const [phone, setPhone] = useState<string | null>(null);
     const [profile, setProfile] = useState<ProfileDetails | null>(null);
-const [images, setImages] = useState<UserImage[] | null>(null);
+const [images, setImages] = useState< [] | null>(null);
     const [prompts, setPrompts] = useState<UserPrompt[] | null>(null);
     const [preferences, setPreferences] = useState<Preferences | null>(null);
     const [isLoading, setIsLoading] = useState(false);

@@ -66,12 +66,13 @@ pub async fn check_user_exists_optional(pool: &PgPool, phone: Option<String>, em
 
 /// Create a new user in the database with BOTH phone and email (required)
 /// Returns the new user's id
-pub async fn create_user(pool: &PgPool, phone: &str, email: &str) -> Result<String, sqlx::Error> {
+pub async fn create_user(pool: &PgPool, phone: &str, email: &str, firebase_user_id: String) -> Result<String, sqlx::Error> {
     let row: (Uuid,) = sqlx::query_as(
-        "INSERT INTO users (phone, email) VALUES ($1, $2) RETURNING id"
+        "INSERT INTO users (phone, email, firebase_uid) VALUES ($1, $2, $3) RETURNING id"
     )
     .bind(phone)
     .bind(email)
+    .bind(firebase_user_id)
     .fetch_one(pool)
     .await?;
 
@@ -80,14 +81,45 @@ pub async fn create_user(pool: &PgPool, phone: &str, email: &str) -> Result<Stri
 
 /// Get or create a user with both phone and email (required)
 /// Returns (user_id, is_new_user)
-pub async fn get_or_create_user(pool: &PgPool, phone: &str, email: &str) -> Result<(String, bool), sqlx::Error> {
+// pub async fn get_or_create_user(pool: &PgPool, phone: &str, email: &str) -> Result<(String, bool), sqlx::Error> {
+//     // First check if user exists by phone OR email
+//     if let Some(id) = check_user_exists(pool, phone, email).await? {
+//         return Ok((id, false));
+//     }
+    
+//     // Create new user with both phone and email
+//     let id = create_user(pool, phone, email).await?;
+//     Ok((id, true))
+// }
+
+/// Create a new user for seeding purposes (with fake Firebase UID)
+/// Returns the new user's id
+pub async fn create_user_for_seed(pool: &PgPool, phone: &str, email: &str) -> Result<String, sqlx::Error> {
+    // Generate a fake Firebase UID for seed data
+    let fake_firebase_uid = format!("seed_{}", Uuid::new_v4());
+    
+    let row: (Uuid,) = sqlx::query_as(
+        "INSERT INTO users (phone, email, firebase_uid) VALUES ($1, $2, $3) RETURNING id"
+    )
+    .bind(phone)
+    .bind(email)
+    .bind(fake_firebase_uid)
+    .fetch_one(pool)
+    .await?;
+
+    Ok(row.0.to_string())
+}
+
+/// Get or create a user for seeding purposes (with fake Firebase UID)
+/// Returns (user_id, is_new_user)
+pub async fn get_or_create_user_for_seed(pool: &PgPool, phone: &str, email: &str) -> Result<(String, bool), sqlx::Error> {
     // First check if user exists by phone OR email
     if let Some(id) = check_user_exists(pool, phone, email).await? {
         return Ok((id, false));
     }
     
-    // Create new user with both phone and email
-    let id = create_user(pool, phone, email).await?;
+    // Create new user with both phone and email (fake Firebase UID)
+    let id = create_user_for_seed(pool, phone, email).await?;
     Ok((id, true))
 }
 

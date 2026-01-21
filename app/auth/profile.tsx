@@ -108,7 +108,7 @@ export default function ProfileSetupScreen() {
         try {
             const fullName = lastName ? `${firstName} ${lastName}` : firstName;
 
-            await updateProfile({
+            let response = await updateProfile({
                 name: fullName,
                 bio: bio || undefined,
                 birthdate: birthdate || undefined,
@@ -128,6 +128,12 @@ export default function ProfileSetupScreen() {
                 drinks: drinks || undefined,
                 smokes: smokes || undefined,
             });
+
+            if (response.status === "success") {
+                
+            } else {
+
+            }
 
             router.replace("/(tabs)");
         } catch (error) {

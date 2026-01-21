@@ -494,8 +494,8 @@ pub async fn seed_database(pool: &PgPool) -> Result<(), sqlx::Error> {
     let mut updated_count = 0;
     
     for seed in &profiles {
-        // Get or create user
-        let (user_id, is_new) = user_queries::get_or_create_user(pool, &seed.phone, &seed.email).await?;
+        // Get or create user (using seed-specific function with fake Firebase UID)
+        let (user_id, is_new) = user_queries::get_or_create_user_for_seed(pool, &seed.phone, &seed.email).await?;
         let user_uuid = Uuid::parse_str(&user_id).expect("Invalid UUID from get_or_create_user");
         
         // Create/update profile using existing function

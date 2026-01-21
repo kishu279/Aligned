@@ -1,4 +1,6 @@
-import { getMyProfile } from "@/lib/api/endpoints";
+import { checkUserExists, getMyProfile } from "@/lib/api/endpoints";
+import UserDetailsForm from "@/components/UserDetailsForm";
+import { useAuth } from "@/lib/context/AuthContext";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
@@ -9,14 +11,49 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+type ScreenState = "loading" | "user_not_found" | "checking_profile" | "ready";
+
 export default function InterstitialScreen() {
     const router = useRouter();
-    const [isLoading, setIsLoading] = useState(true);
-    const [message, setMessage] = useState("Checking your profile...");
+    const { firebaseUser } = useAuth();
+    const [screenState, setScreenState] = useState<ScreenState>("loading");
+    const [message, setMessage] = useState("Checking your account...");
+
+    // Get user info from Firebase auth
+    const userEmail = firebaseUser?.email || undefined;
+    const userPhone = undefined; // Phone would come from Firebase phone auth if used
+
+    const handleCheckUserExists = async () => {
+        if (!userEmail) {
+            console.log("[Interstitial] No email found, showing details form");
+            setScreenState("user_not_found");
+            return;
+        }
+
+        try {
+            setMessage("Checking if user exists...");
+            const response = await checkUserExists({ email: userEmail });
+            console.log("[Interstitial] User exists response:", response);
+
+            if (response.status === "exists") {
+                // User exists in database, check their profile
+                handleGetProfile();
+            } else if (response.status === "error" || response.status === "not_found") {
+                // User not found - show the form to create account
+                console.log("[Interstitial] User not found, showing details form");
+                setScreenState("user_not_found");
+            }
+        } catch (error: any) {
+            console.log("[Interstitial] Error checking user exists:", error);
+            // On error, show the form to try creating account
+            setScreenState("user_not_found");
+        }
+    };
 
     const handleGetProfile = async () => {
         try {
             setMessage("Loading your profile...");
+            setScreenState("checking_profile");
             const profile = await getMyProfile();
 
             // Check if profile has required details
@@ -35,15 +72,33 @@ export default function InterstitialScreen() {
             // No profile found - new user, go to profile setup
             setMessage("Welcome! Let's create your profile.");
             setTimeout(() => router.replace("/auth/profile"), 1000);
-        } finally {
-            setIsLoading(false);
         }
     };
 
-    useEffect(() => {
+    const handleUserCreationSuccess = () => {
+        // User created successfully, now check/create profile
+        console.log("[Interstitial] User created, proceeding to profile check");
         handleGetProfile();
+    };
+
+    useEffect(() => {
+        handleCheckUserExists();
     }, []);
 
+    // Show UserDetailsForm when user doesn't exist
+    if (screenState === "user_not_found") {
+        return (
+            <SafeAreaView style={styles.container}>
+                <UserDetailsForm
+                    email={userEmail}
+                    phone={userPhone}
+                    onSuccess={handleUserCreationSuccess}
+                />
+            </SafeAreaView>
+        );
+    }
+
+    // Show loading state
     return (
         <SafeAreaView style={styles.container}>
             <View style={styles.content}>
@@ -55,9 +110,7 @@ export default function InterstitialScreen() {
 
                 {/* Loading indicator */}
                 <View style={styles.loadingContainer}>
-                    {isLoading ? (
-                        <ActivityIndicator size="large" color="#8B5A9C" />
-                    ) : null}
+                    <ActivityIndicator size="large" color="#8B5A9C" />
                     <Text style={styles.message}>{message}</Text>
                 </View>
 

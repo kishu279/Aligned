@@ -1,7 +1,6 @@
 import type { CreateUser as CreateUserType } from "@/lib/api/endpoints";
-import { createUser, checkUserExists } from "@/lib/api/endpoints";
+import { createUser } from "@/lib/api/endpoints";
 import { Ionicons } from "@expo/vector-icons";
-import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
     ActivityIndicator,
@@ -15,52 +14,26 @@ import {
     TouchableOpacity,
     View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import phone from "./phone";
 
-export default function DetailsScreen() {
-    const router = useRouter();
-    const params = useLocalSearchParams<{ phone?: string; email?: string }>();
+interface UserDetailsFormProps {
+    phone?: string;
+    email?: string;
+    onSuccess: () => void;
+    onBack?: () => void;
+}
 
+export default function UserDetailsForm({ phone, email, onSuccess, onBack }: UserDetailsFormProps) {
     // Determine what we need to collect
-    const hasPhone = !!params.phone;
-    const hasEmail = !!params.email;
+    const hasPhone = !!phone;
+    const hasEmail = !!email;
     const collectingEmail = hasPhone && !hasEmail;
     const collectingPhone = hasEmail && !hasPhone;
-    const [user, setUser] = React.useState<CreateUserType | null>();
 
     const [inputValue, setInputValue] = useState("");
     const [isLoading, setIsLoading] = useState(false);
     const [showSuccessModal, setShowSuccessModal] = useState(false);
-
-    const handleCheckAnExistingUser = async (phoneNumber?: string, email?: string) => {
-        try {
-            const response = await checkUserExists({ phone: phoneNumber, email: email });
-
-            if (response && response.status === "exists") {
-                // User already exists, redirect to profile
-                router.push("/(tabs)/profile");
-            } else if (response && response.status === "error") {
-                Alert.alert("Error", "Failed to check existing user");
-                router.push("/");
-            } else {
-                // User not found (status === "not_found")
-                // Stay on this page to collect remaining info and create account
-                console.log("[DETAILS] User not found, prompting to complete registration");
-            }
-
-        } catch (error) {
-            console.error("Failed to check existing user:", error);
-            Alert.alert("Error", "Failed to check existing user");
-            router.push("/");
-        }
-    }
-
-    React.useEffect(() => {
-        if (hasPhone) {
-            handleCheckAnExistingUser(params.phone);
-        }
-    }, [])
+    const [showFailureModal, setShowFailureModal] = useState(false);
+    const [errorMessage, setErrorMessage] = useState("");
 
     const handleSubmit = async () => {
         if (!inputValue.trim()) {
@@ -68,6 +41,7 @@ export default function DetailsScreen() {
             return;
         }
 
+        let userData: CreateUserType | null = null;
 
         // Basic validation
         if (collectingEmail) {
@@ -76,45 +50,46 @@ export default function DetailsScreen() {
                 Alert.alert("Error", "Please enter a valid email address");
                 return;
             }
-
-            setUser({
+            userData = {
                 email: inputValue,
-                phone: params.phone!,
-            })
+                phone: phone!,
+            };
         } else if (collectingPhone) {
             // Simple phone validation
             if (inputValue.length < 10) {
                 Alert.alert("Error", "Please enter a valid phone number");
                 return;
             }
-
-            setUser({
-                email: params.email!,
+            userData = {
+                email: email!,
                 phone: inputValue,
-            })
+            };
+        }
+
+        if (!userData) {
+            Alert.alert("Error", "Failed to create user");
+            return;
         }
 
         setIsLoading(true);
         try {
-            // TODO: Call backend API to update user details
-            // TODO: Link credential with Firebase if needed
-            console.log('[DETAILS] Submitting:', collectingEmail ? 'email' : 'phone', inputValue);
+            console.log('[UserDetailsForm] Creating user:', userData);
+            let response = await createUser(userData);
 
-            // handle the api call to creat the user onthe db
-            if (!user) {
-                Alert.alert("Error", "Failed to create user");
+            if (response.status === "error") {
+                setErrorMessage(response.message || "Failed to create account");
+                setShowFailureModal(true);
+                setTimeout(() => setShowFailureModal(false), 3000);
                 return;
             }
-
-            await createUser(user!)
 
             // Show success popup
             setShowSuccessModal(true);
 
-            // Navigate after a brief delay
+            // Callback after a brief delay
             setTimeout(() => {
                 setShowSuccessModal(false);
-                router.push("/auth/interstitial");
+                onSuccess();
             }, 2000);
         } catch (error: any) {
             Alert.alert("Error", error.message || "Failed to save details");
@@ -137,101 +112,101 @@ export default function DetailsScreen() {
     const isValid = inputValue.trim().length > 0;
 
     return (
-        <SafeAreaView style={styles.container}>
-            <KeyboardAvoidingView
-                behavior={Platform.OS === "ios" ? "padding" : "height"}
-                style={styles.keyboardAvoidingView}
-            >
-                <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+        <KeyboardAvoidingView
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
+            style={styles.keyboardAvoidingView}
+        >
+            {onBack && (
+                <TouchableOpacity onPress={onBack} style={styles.backButton}>
                     <Ionicons name="chevron-back" size={28} color="#000" />
                 </TouchableOpacity>
+            )}
 
-                <View style={styles.content}>
-                    {/* Header Icon */}
-                    <View style={styles.iconContainer}>
-                        <Ionicons name={icon} size={32} color="#000" />
+            <View style={styles.content}>
+                {/* Header Icon */}
+                <View style={styles.iconContainer}>
+                    <Ionicons name={icon} size={32} color="#000" />
+                </View>
+
+                {/* Title */}
+                <Text style={styles.title}>{title}</Text>
+
+                {/* Show what we already have */}
+                {hasPhone && (
+                    <View style={styles.existingInfo}>
+                        <Ionicons name="checkmark-circle" size={16} color="#4CAF50" />
+                        <Text style={styles.existingText}>Phone: {phone}</Text>
                     </View>
+                )}
+                {hasEmail && (
+                    <View style={styles.existingInfo}>
+                        <Ionicons name="checkmark-circle" size={16} color="#4CAF50" />
+                        <Text style={styles.existingText}>Email: {email}</Text>
+                    </View>
+                )}
 
-                    {/* Title */}
-                    <Text style={styles.title}>{title}</Text>
-
-                    {/* Show what we already have */}
-                    {hasPhone && (
-                        <View style={styles.existingInfo}>
-                            <Ionicons name="checkmark-circle" size={16} color="#4CAF50" />
-                            <Text style={styles.existingText}>Phone: {params.phone}</Text>
-                        </View>
-                    )}
-                    {hasEmail && (
-                        <View style={styles.existingInfo}>
-                            <Ionicons name="checkmark-circle" size={16} color="#4CAF50" />
-                            <Text style={styles.existingText}>Email: {params.email}</Text>
-                        </View>
-                    )}
-
-                    {/* Input */}
-                    {collectingEmail ? (
-                        <View style={styles.inputContainer}>
+                {/* Input */}
+                {collectingEmail ? (
+                    <View style={styles.inputContainer}>
+                        <TextInput
+                            style={styles.input}
+                            placeholder={placeholder}
+                            placeholderTextColor="#999"
+                            keyboardType={keyboardType}
+                            autoCapitalize="none"
+                            autoFocus
+                            value={inputValue}
+                            onChangeText={setInputValue}
+                            selectionColor="#8B5A9C"
+                            editable={!isLoading}
+                        />
+                        <View style={styles.underline} />
+                    </View>
+                ) : collectingPhone ? (
+                    <>
+                        <View style={styles.inputRow}>
+                            {/* Country Code */}
+                            <View style={styles.countryCodeContainer}>
+                                <Text style={styles.flag}>🇮🇳</Text>
+                                <Text style={styles.countryCodeText}>+91</Text>
+                                <Ionicons name="chevron-down" size={16} color="#000" />
+                            </View>
+                            <View style={styles.divider} />
                             <TextInput
-                                style={styles.input}
-                                placeholder={placeholder}
-                                placeholderTextColor="#999"
-                                keyboardType={keyboardType}
-                                autoCapitalize="none"
+                                style={styles.phoneInput}
+                                placeholder=""
+                                keyboardType="phone-pad"
                                 autoFocus
                                 value={inputValue}
                                 onChangeText={setInputValue}
                                 selectionColor="#8B5A9C"
                                 editable={!isLoading}
                             />
-                            <View style={styles.underline} />
                         </View>
-                    ) : collectingPhone ? (
-                        <>
-                            <View style={styles.inputRow}>
-                                {/* Country Code */}
-                                <View style={styles.countryCodeContainer}>
-                                    <Text style={styles.flag}>🇮🇳</Text>
-                                    <Text style={styles.countryCodeText}>+91</Text>
-                                    <Ionicons name="chevron-down" size={16} color="#000" />
-                                </View>
-                                <View style={styles.divider} />
-                                <TextInput
-                                    style={styles.phoneInput}
-                                    placeholder=""
-                                    keyboardType="phone-pad"
-                                    autoFocus
-                                    value={inputValue}
-                                    onChangeText={setInputValue}
-                                    selectionColor="#8B5A9C"
-                                    editable={!isLoading}
-                                />
-                            </View>
-                            <View style={styles.underline} />
-                        </>
+                        <View style={styles.underline} />
+                    </>
+                ) : (
+                    <Text style={styles.errorText}>Missing parameters</Text>
+                )}
+
+                {/* Footer Text */}
+                <Text style={styles.footerText}>{footerText}</Text>
+            </View>
+
+            {/* Floating Action Button */}
+            <View style={styles.fabContainer}>
+                <TouchableOpacity
+                    style={[styles.fab, (!isValid || isLoading) && styles.fabDisabled]}
+                    onPress={handleSubmit}
+                    disabled={!isValid || isLoading}
+                >
+                    {isLoading ? (
+                        <ActivityIndicator color="#999" />
                     ) : (
-                        <Text style={styles.errorText}>Missing parameters</Text>
+                        <Ionicons name="chevron-forward" size={28} color={!isValid ? "#999" : "#fff"} />
                     )}
-
-                    {/* Footer Text */}
-                    <Text style={styles.footerText}>{footerText}</Text>
-                </View>
-
-                {/* Floating Action Button */}
-                <View style={styles.fabContainer}>
-                    <TouchableOpacity
-                        style={[styles.fab, (!isValid || isLoading) && styles.fabDisabled]}
-                        onPress={handleSubmit}
-                        disabled={!isValid || isLoading}
-                    >
-                        {isLoading ? (
-                            <ActivityIndicator color="#999" />
-                        ) : (
-                            <Ionicons name="chevron-forward" size={28} color={!isValid ? "#999" : "#fff"} />
-                        )}
-                    </TouchableOpacity>
-                </View>
-            </KeyboardAvoidingView>
+                </TouchableOpacity>
+            </View>
 
             {/* Success Modal */}
             <Modal
@@ -251,15 +226,30 @@ export default function DetailsScreen() {
                     </View>
                 </View>
             </Modal>
-        </SafeAreaView>
+
+            {/* Failure Modal */}
+            <Modal
+                visible={showFailureModal}
+                transparent={true}
+                animationType="fade"
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalContent}>
+                        <View style={styles.successIconContainer}>
+                            <Ionicons name="close-circle" size={64} color="#f44336" />
+                        </View>
+                        <Text style={styles.modalTitle}>Account Creation Failed</Text>
+                        <Text style={styles.modalMessage}>
+                            {errorMessage}
+                        </Text>
+                    </View>
+                </View>
+            </Modal>
+        </KeyboardAvoidingView>
     );
 }
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: "#fff",
-    },
     keyboardAvoidingView: {
         flex: 1,
     },

@@ -148,6 +148,21 @@ export async function getDownloadUrl(key: string): Promise<DownloadResponse> {
   });
 }
 
+export interface ViewImagesRequest {
+  user_id?: string;
+}
+
+export interface ViewImagesResponse {
+  images: string[];
+}
+
+export async function viewProfileImages(userId?: string): Promise<ViewImagesResponse> {
+  return apiRequest<ViewImagesResponse>('/api/v1/files/view', {
+    method: 'POST',
+    body: userId ? { user_id: userId } : {},
+  });
+}
+
 // @deprecated - Use getUploadUrl instead
 export async function uploadProfileImage(imageUrl: string): Promise<StatusResponse> {
   console.warn('uploadProfileImage is deprecated. Use getUploadUrl instead.');

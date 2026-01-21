@@ -59,16 +59,20 @@ pub async fn create_user(
 
     // Check if user already exists by email or phone
     if let Ok(Some(existing_id)) = user_queries::check_user_exists(&pool, phone, email).await {
+        println!("User exist");
         return HttpResponse::Ok().json(StatusResponse {
-            status: "success".to_string(),
+            status: "error".to_string(),
             message: Some(format!("User {} already exists", existing_id)),
         });
     }
 
+    // get the firebase user id
+    let firebase_user_id = firebase_user.user_id.clone();
+    
     // Create new user with both email and phone
-    match user_queries::create_user(&pool, phone, email).await {
+    match user_queries::create_user(&pool, phone, email, firebase_user_id).await {
         Ok(user_id) => {
-            println!("Created new user with ID: {}", user_id);
+            println!("User created");
             HttpResponse::Ok().json(StatusResponse {
                 status: "success".to_string(),
                 message: Some(format!("User {} successfully created", user_id)),
