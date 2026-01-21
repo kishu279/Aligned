@@ -19,6 +19,8 @@ mod jwtauth;
 mod models;
 mod routes;
 mod firebaseauth;
+mod file_storage;
+mod r2_client;
 
 use routes::{auth, feed, interactions, matches, profile, prompts, user};
 
@@ -54,6 +56,32 @@ async fn main() -> std::io::Result<()> {
     let firebase_auth = FirebaseAuth::new(&project_id).await;
     let app_firebase = web::Data::new(firebase_auth);
 
+    // R2 Storage Configuration
+    let r2_account_id = env::var("CLOUDFLARE_ACCOUNT_ID").unwrap_or_else(|_| {
+        println!("WARNING: CLOUDFLARE_ACCOUNT_ID not set, file uploads will not work");
+        String::new()
+    });
+    let r2_access_key = env::var("CLOUDFLARE_ACCESS_KEY_ID").unwrap_or_else(|_| {
+        println!("WARNING: CLOUDFLARE_ACCESS_KEY_ID not set, file uploads will not work");
+        String::new()
+    });
+    let r2_secret_key = env::var("CLOUDFLARE_SECRET_ACCESS_KEY").unwrap_or_else(|_| {
+        println!("WARNING: R2_SECRET_ACCESS_KEY not set, file uploads will not work");
+        String::new()
+    });
+    let r2_bucket_name = env::var("R2_BUCKET_NAME").unwrap_or_else(|_| {
+        println!("WARNING: R2_BUCKET_NAME not set, file uploads will not work");
+        String::new()
+    });
+
+    let r2_client = r2_client::R2Client::new(
+        &r2_account_id,
+        &r2_access_key,
+        &r2_secret_key,
+        &r2_bucket_name,
+    ).await;
+    let file_service = web::Data::new(file_storage::FileService::new(r2_client));
+
     println!("Starting server on 0.0.0.0:8080 (accessible from network)");
     HttpServer::new(move || {
 
@@ -72,6 +100,7 @@ async fn main() -> std::io::Result<()> {
             .wrap(Cors::permissive())
             .wrap(firebaseauth::middleware::FirebaseAuthMiddleware)
             .app_data(web::Data::new(pool.clone()))
+            .app_data(file_service.clone())
             .route("/test", web::get().to(health_check))  // Test route in /api/v1 scope
             .route("/user/create", web::post().to(user::create_user))
             .route("/user/check", web::post().to(user::check_user_exists))
@@ -80,8 +109,13 @@ async fn main() -> std::io::Result<()> {
             .route("/profile/me", web::get().to(profile::get_profile))
             .route("/profile", web::post().to(profile::update_profile))
             .route("/user/preferences", web::post().to(user::update_user_preference))
-            .route("/user/images", web::post().to(profile::upload_user_images))
-            .route("/profile/images", web::post().to(profile::upload_profile_images))
+            // Legacy image routes (deprecated)
+            // .route("/user/images", web::post().to(profile::upload_user_images))
+            // .route("/profile/images", web::post().to(profile::upload_profile_images))
+            // New R2 signed URL routes
+            .route("/files/upload-url", web::post().to(profile::get_upload_url))
+            .route("/files/view", web::post().to(profile::view_profile_images))
+            .route("/files/download-url", web::post().to(profile::get_download_url))
             .route("/profile/finalize", web::post().to(profile::finalize_profile))
             .route("/profile", web::delete().to(profile::delete_account))
             .route("/feed", web::get().to(feed::get_feed))

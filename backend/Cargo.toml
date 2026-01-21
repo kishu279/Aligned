@@ -17,3 +17,8 @@ jsonwebtoken = { version = "10", features = ["aws_lc_rs"] }
 chrono = "0.4"
 firebase-auth = { version = "0.5.1", features = ["actix-web"] }
 futures = "0.3.31"
+aws-config = { version= "1.8.12", features = ["behavior-version-latest"] }
+aws-sdk-s3 = "1.15"
+anyhow = "1.0"
+bytes = "1.0"
+serde_bytes = "0.11.19"

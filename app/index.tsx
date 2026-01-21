@@ -27,7 +27,7 @@ export default function LoginScreen() {
         console.log("authenticated", isAuthenticated);
 
         if (isAuthenticated) {
-            router.replace("/(tabs)");
+            router.replace("/auth/interstitial");
         }
     }, [isAuthenticated]);
 

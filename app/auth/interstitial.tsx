@@ -1,38 +1,67 @@
+import { getMyProfile } from "@/lib/api/endpoints";
 import { useRouter } from "expo-router";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import {
+    ActivityIndicator,
     StyleSheet,
     Text,
-    TouchableOpacity,
     View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function InterstitialScreen() {
     const router = useRouter();
+    const [isLoading, setIsLoading] = useState(true);
+    const [message, setMessage] = useState("Checking your profile...");
+
+    const handleGetProfile = async () => {
+        try {
+            setMessage("Loading your profile...");
+            const profile = await getMyProfile();
+
+            // Check if profile has required details
+            if (profile.details?.name) {
+                // Profile exists, go to main tabs
+                console.log("[Interstitial] Profile found, going to tabs");
+                router.replace("/(tabs)");
+            } else {
+                // Profile incomplete, go to setup
+                console.log("[Interstitial] Profile incomplete, going to setup");
+                setMessage("Let's set up your profile!");
+                setTimeout(() => router.replace("/auth/profile"), 1000);
+            }
+        } catch (error: any) {
+            console.log("[Interstitial] Profile not found or error:", error);
+            // No profile found - new user, go to profile setup
+            setMessage("Welcome! Let's create your profile.");
+            setTimeout(() => router.replace("/auth/profile"), 1000);
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
     useEffect(() => {
-        // Auto-advance after 3 seconds
-        const timer = setTimeout(() => {
-            router.push("/auth/name");
-        }, 3000);
-        return () => clearTimeout(timer);
+        handleGetProfile();
     }, []);
 
     return (
         <SafeAreaView style={styles.container}>
-            <TouchableOpacity
-                style={styles.content}
-                activeOpacity={1}
-                onPress={() => router.push("/auth/name")}
-            >
+            <View style={styles.content}>
                 <View style={styles.textContainer}>
                     <Text style={styles.title}>You're one of a kind.</Text>
                     <Text style={styles.title}>Your profile should</Text>
                     <Text style={styles.title}>be, too.</Text>
                 </View>
 
-                {/* Illustration Placeholder - Little creature eyes from screenshot */}
+                {/* Loading indicator */}
+                <View style={styles.loadingContainer}>
+                    {isLoading ? (
+                        <ActivityIndicator size="large" color="#8B5A9C" />
+                    ) : null}
+                    <Text style={styles.message}>{message}</Text>
+                </View>
+
+                {/* Illustration */}
                 <View style={styles.illustration}>
                     <View style={styles.blob}>
                         <View style={styles.eyesRow}>
@@ -46,7 +75,7 @@ export default function InterstitialScreen() {
                         <View style={styles.line} />
                     </View>
                 </View>
-            </TouchableOpacity>
+            </View>
         </SafeAreaView>
     );
 }
@@ -63,15 +92,25 @@ const styles = StyleSheet.create({
         paddingHorizontal: 32,
     },
     textContainer: {
-        marginBottom: 60,
+        marginBottom: 40,
     },
     title: {
         fontSize: 32,
         fontWeight: "900",
-        fontFamily: "Tinos-Bold", // Use Serif for this brand moment
+        fontFamily: "Tinos-Bold",
         color: "#000",
-        textAlign: "left", // Hinge style left aligned usually, but centered in container
+        textAlign: "left",
         lineHeight: 40,
+    },
+    loadingContainer: {
+        alignItems: "center",
+        marginBottom: 40,
+    },
+    message: {
+        marginTop: 16,
+        fontSize: 16,
+        color: "#666",
+        fontFamily: "NunitoSans",
     },
     illustration: {
         alignItems: 'center',
@@ -80,8 +119,8 @@ const styles = StyleSheet.create({
     blob: {
         width: 200,
         height: 180,
-        backgroundColor: '#F5F0F7', // Light purple bg
-        borderRadius: 100, // Blob shape
+        backgroundColor: '#F5F0F7',
+        borderRadius: 100,
         justifyContent: 'flex-end',
         paddingBottom: 20,
         alignItems: 'center',

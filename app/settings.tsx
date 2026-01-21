@@ -12,9 +12,11 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import auth from '@react-native-firebase/auth';
+import { useAuth } from "@/lib/context/AuthContext";
 
 export default function Settings() {
     const router = useRouter();
+    const { isAuthenticated, logout } = useAuth()
 
     // State for toggles
     const [pauseProfile, setPauseProfile] = useState(false);
@@ -37,8 +39,8 @@ export default function Settings() {
             {
                 text: "Logout",
                 onPress: () => {
-                    auth().signOut().then(() => {
-                        console.log("DEBUG: User signed out")
+                    logout().then(() => {
+                        console.log("Authenticated : ", isAuthenticated)
                         router.replace("/")
                     })
                 }

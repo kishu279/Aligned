@@ -9,17 +9,100 @@ import {
   Text,
   TouchableOpacity,
   View,
+  ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Circle } from "react-native-svg";
+// import PROFILE_IMAGE from "./../../assets/icons/profile.png";
+import * as ImagePicker from 'expo-image-picker';
+import { getUploadUrl } from '@/lib/api/endpoints';
 
-const PROFILE_IMAGE = { uri: "https://avatars.githubusercontent.com/u/77573811?v=4" };
+const PROFILE_IMAGE = { uri: "https://upload.wikimedia.org/wikipedia/commons/8/89/Portrait_Placeholder.png" };
 
 type Tab = "Get more" | "Safety" | "My Aligned";
 
 export default function Profile() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<Tab>("Get more");
+  const [isUploading, setIsUploading] = useState<boolean>(false);
+  const [image, setImage] = useState<string | null>(null);
+
+  const uploadImageToR2 = async (imageUri: string, fileName: string) => {
+    try {
+      // Get file extension and mime type
+      const extension = fileName.split('.').pop()?.toLowerCase() || 'jpg';
+      const mimeType = extension === 'png' ? 'image/png' : 'image/jpeg';
+
+      // Get signed upload URL from backend
+      const { upload_url, key } = await getUploadUrl(fileName, mimeType);
+
+      // Read file and upload to R2
+      const response = await fetch(imageUri);
+      const blob = await response.blob();
+
+      const uploadResponse = await fetch(upload_url, {
+        method: 'PUT',
+        body: blob,
+        headers: {
+          'Content-Type': mimeType,
+        },
+      });
+
+      if (!uploadResponse.ok) {
+        throw new Error('Failed to upload to R2');
+      }
+
+      console.log('Image uploaded successfully, key:', key);
+      return key;
+    } catch (error) {
+      console.error('Upload error:', error);
+      throw error;
+    }
+  };
+
+  const handlePickImage = async () => {
+    setIsUploading(true);
+    try {
+      // Request permission (not just check)
+      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permission.granted) {
+        alert("Permission to access media library is required to pick images.");
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'], // Use new MediaType array format instead of deprecated MediaTypeOptions
+        allowsEditing: true,
+        quality: 0.8,
+        aspect: [1, 1],
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const asset = result.assets[0];
+        console.log('Selected image:', asset.uri);
+
+        // Set local preview immediately
+        setImage(asset.uri);
+
+        // Upload to R2
+        const fileName = asset.fileName || `profile_${Date.now()}.jpg`;
+        try {
+          const key = await uploadImageToR2(asset.uri, fileName);
+          console.log('Upload complete, key:', key);
+          // TODO: Save the key to user profile in database
+        } catch (uploadError) {
+          console.error('Failed to upload image:', uploadError);
+          // Keep the local preview even if upload fails
+        }
+      }
+
+    } catch (error) {
+      console.error('Image picker error:', error);
+      alert('Failed to pick image. Please try again.');
+    } finally {
+      setIsUploading(false);
+    }
+  }
 
   return (
     <View style={styles.container}>
@@ -64,12 +147,20 @@ export default function Profile() {
                     transform="rotate(-90 60 60)"
                   />
                 </Svg>
-                <Image source={PROFILE_IMAGE} style={styles.avatar} />
+                <Image source={image ? { uri: image } : PROFILE_IMAGE} style={styles.avatar} />
                 <View style={styles.percentBadge}>
                   <Text style={styles.percentText}>11%</Text>
                 </View>
-                <TouchableOpacity style={styles.editIcon}>
-                  <Ionicons name="pencil" size={14} color="#555" />
+                <TouchableOpacity
+                  style={styles.editIcon}
+                  onPress={handlePickImage}
+                  disabled={isUploading}
+                >
+                  {isUploading ? (
+                    <ActivityIndicator size="small" color="#555" />
+                  ) : (
+                    <Ionicons name="pencil" size={14} color="#555" />
+                  )}
                 </TouchableOpacity>
               </View>
 

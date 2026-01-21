@@ -29,10 +29,6 @@ pub struct UpdateUserRequest {
     pub phone: Option<String>,
 }   
 
-#[derive(Deserialize)]
-pub struct UploadProfileImageRequest {
-    pub image_url: String,
-}
 
 #[derive(Deserialize)]
 pub struct UpdateProfileRequest {
@@ -108,4 +104,20 @@ pub struct Preferences {
     pub gender_preference: Option<Vec<String>>,
     pub ethnicity_preference: Option<Vec<String>>,
     pub religion_preference: Option<Vec<String>>,
+}
+
+#[derive(Deserialize)]
+pub struct UploadUrlRequest {
+    pub filename: String,
+    pub content_type: String,
+}
+
+#[derive(Deserialize)]
+pub struct DeleteRequest {
+    pub key: String,
+}
+
+#[derive(Deserialize, Debug, Clone)]
+pub struct DownloadRequest {
+    pub key: String,
 }

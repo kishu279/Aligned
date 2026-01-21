@@ -115,10 +115,51 @@ export async function updateProfile(data: Partial<ProfileDetails>): Promise<Stat
   });
 }
 
+// File Upload/Download (R2 Signed URLs)
+export interface UploadUrlRequest {
+  filename: string;
+  content_type: string;
+}
+
+export interface SignedUrlResponse {
+  upload_url: string;
+  key: string;
+}
+
+export interface DownloadUrlRequest {
+  key: string;
+}
+
+export interface DownloadResponse {
+  download_url: string;
+}
+
+export async function getUploadUrl(filename: string, contentType: string): Promise<SignedUrlResponse> {
+  return apiRequest<SignedUrlResponse>('/api/v1/files/upload-url', {
+    method: 'POST',
+    body: { filename, content_type: contentType },
+  });
+}
+
+export async function getDownloadUrl(key: string): Promise<DownloadResponse> {
+  return apiRequest<DownloadResponse>('/api/v1/files/download-url', {
+    method: 'POST',
+    body: { key },
+  });
+}
+
+// @deprecated - Use getUploadUrl instead
 export async function uploadProfileImage(imageUrl: string): Promise<StatusResponse> {
+  console.warn('uploadProfileImage is deprecated. Use getUploadUrl instead.');
   return apiRequest<StatusResponse>('/api/v1/profile/images', {
     method: 'POST',
     body: { image_url: imageUrl },
+  });
+}
+
+export async function finalizeProfile(): Promise<StatusResponse> {
+  return apiRequest<StatusResponse>('/api/v1/profile/finalize', {
+    method: 'POST',
   });
 }
 
@@ -193,3 +234,60 @@ export async function createPrompt(question: string, answer: string): Promise<St
   });
 }
 
+export async function updatePrompt(order: number, question: string, answer: string): Promise<StatusResponse> {
+  return apiRequest<StatusResponse>(`/api/v1/prompts/${order}`, {
+    method: 'PUT',
+    body: { question, answer },
+  });
+}
+
+export async function deletePrompt(order: number): Promise<StatusResponse> {
+  return apiRequest<StatusResponse>(`/api/v1/prompts/${order}`, {
+    method: 'DELETE',
+  });
+}
+
+// Matches
+export interface Match {
+  id: string;
+  user: UserProfile;
+  lastMessage?: Message;
+  createdAt: string;
+}
+
+export interface Message {
+  id: string;
+  senderId: string;
+  text: string;
+  createdAt: string;
+}
+
+export interface MatchesResponse {
+  matches: Match[];
+}
+
+export interface MessagesResponse {
+  messages: Message[];
+}
+
+export async function getMatches(): Promise<MatchesResponse> {
+  return apiRequest<MatchesResponse>('/api/v1/matches');
+}
+
+export async function getMessages(matchId: string): Promise<MessagesResponse> {
+  return apiRequest<MessagesResponse>(`/api/v1/matches/${matchId}/messages`);
+}
+
+export async function sendMessage(matchId: string, text: string): Promise<StatusResponse> {
+  return apiRequest<StatusResponse>(`/api/v1/matches/${matchId}/messages`, {
+    method: 'POST',
+    body: { text },
+  });
+}
+
+// User
+export async function getUser(): Promise<UserProfile> {
+  return apiRequest<UserProfile>('/api/v1/user/get', {
+    method: 'POST',
+  });
+}

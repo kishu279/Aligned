@@ -160,3 +160,9 @@ pub struct Message {
     pub text: String,
     pub created_at: String,
 }
+
+#[derive(Serialize)]
+pub struct SuccessResponse {
+    pub success: bool,
+}
+
