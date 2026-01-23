@@ -58,8 +58,8 @@ export default function Index() {
     const nextIndex = (currentIndex + 1) % profiles.length;
     setCurrentIndex(nextIndex);
 
-    console.log("NEXT INDEX = ", nextIndex);
-    console.log("Current Profile = ", currentProfile);
+    // console.log("NEXT INDEX = ", nextIndex);
+    // console.log("Current Profile = ", currentProfile);
     scrollViewRef.current?.scrollTo({ y: 0, animated: false });
   };
 

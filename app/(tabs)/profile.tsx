@@ -34,10 +34,11 @@ export default function Profile() {
     setLoading(true)
     try {
       const response = await getMyProfile();
+      console.log(response.details)
 
       if (response.images && response.images.length > 0) {
         // Images now include presigned download URLs directly
-        setprofileImage(response.images[0].url);
+        setprofileImage(response.images[1].url);
         console.log("IMAGE URL = ", response.images[1].url);
       }
     } catch (error) {

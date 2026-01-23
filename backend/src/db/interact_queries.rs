@@ -2,6 +2,7 @@ use sqlx::PgPool;
 use uuid::Uuid;
 
 use crate::models::inputs::InteractRequest;
+use crate::models::outputs::Interaction;
 
 pub async fn interact(
     pool: &PgPool,
@@ -31,4 +32,36 @@ pub async fn interact(
     .await?;
 
     Ok(())
+}
+
+pub async fn get_interactions_to_user_id(
+    pool: &PgPool,
+    user_id: &Uuid,
+    action: &str    
+) -> Result<Vec<Interaction>, sqlx::Error> {
+    let interactions = sqlx::query_as(
+        r#"SELECT * FROM interactions WHERE to_user_id = $1 AND action = $2 ORDER BY created_at DESC"#
+    )
+    .bind(user_id)
+    .bind(action)
+    .fetch_all(pool)
+    .await?;
+
+    Ok(interactions)
+}
+
+pub async fn get_interactions_from_user_id(
+    pool: &PgPool,
+    user_id: &Uuid,
+    action: &str,
+) -> Result<Vec<Interaction>, sqlx::Error> {
+    let interactions = sqlx::query_as(
+        r#"SELECT * FROM interactions WHERE from_user_id = $1 AND action = $2 ORDER BY created_at DESC"#
+    )
+    .bind(user_id)
+    .bind(action)
+    .fetch_all(pool)
+    .await?;
+
+    Ok(interactions)
 }

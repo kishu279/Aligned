@@ -247,6 +247,7 @@ pub async fn get_suggestions(
                 ) AS images
 
             FROM profiles p
+            INNER JOIN users u ON p.user_id = u.id
             LEFT JOIN user_images ui ON p.user_id = ui.user_id
             WHERE p.gender = ANY($1) AND p.user_id != $2
             GROUP BY 
@@ -267,14 +268,24 @@ pub async fn get_suggestions(
                 p.relationship_type,
                 p.dating_intention,
                 p.drinks,
-                p.smokes
+                p.smokes,
+                u.last_active
 
-            ORDER BY RANDOM()
-            LIMIT 20
-        "#,
-        )
+                ORDER BY 
+                     CASE WHEN u.last_active > NOW() - INTERVAL '1 day' THEN 0
+                        WHEN u.last_active > NOW() - INTERVAL '1 week' THEN 1
+                        WHEN u.last_active > NOW() - INTERVAL '1 month' THEN 2
+                        ELSE 3
+                    END,
+                    MD5(p.user_id::TEXT || $3)
+                LIMIT 20 OFFSET $4
+                "#,
+            )
+            // ORDER BY RANDOM()
         .bind(&genders)
         .bind(user_id)
+        .bind("test-seed-123".to_string()) // default for testing
+        .bind(0)   // default for testing 
         .fetch_all(pool)
         .await?
     } else {

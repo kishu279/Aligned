@@ -120,6 +120,9 @@ async fn main() -> std::io::Result<()> {
             .route("/profile", web::delete().to(profile::delete_account))
             .route("/feed", web::get().to(feed::get_feed))
             .route("/interact", web::post().to(interactions::interact))
+            .route("/interact/me/{user_id}", web::post().to(interactions::get_interactions_for_me)) // who inacted to me
+            .route("/interact/to/{user_id}", web::post().to(interactions::get_interactions_to_everyone))
+            
             .route("/matches", web::get().to(matches::get_matches))
             .route(
                 "/matches/{id}/messages",

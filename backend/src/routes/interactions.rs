@@ -4,6 +4,7 @@ use crate::models::outputs::StatusResponse;
 use actix_web::{HttpMessage, HttpRequest, HttpResponse, Responder, web};
 use sqlx::PgPool;
 use uuid::Uuid;
+use serde::{Deserialize};
 
 use firebase_auth::FirebaseUser;
 
@@ -50,4 +51,41 @@ pub async fn interact(body: web::Json<InteractRequest>, pool: web::Data<PgPool>,
             message: Some("Failed to record interaction".to_string()),
         })
     }
+}
+
+
+#[derive(Deserialize)]
+pub struct PathParams {
+    pub user_id: Uuid,
+}
+
+#[derive(Deserialize)]
+pub struct QueryParams {
+    pub action: String,
+}
+
+// GET ALL THE INTEACTIONS WHICH ARE TO ME
+pub async fn get_interactions_for_me(pool: web::Data<PgPool>, params: web::Path<PathParams>, query: web::Query<QueryParams>) -> impl Responder {
+    let interactions = match interact_queries::get_interactions_to_user_id(&pool, &params.user_id, &query.action).await {
+        Ok(interactions) => interactions,
+        Err(e) => return HttpResponse::InternalServerError().json(StatusResponse {
+            status: "error".to_string(),
+            message: Some(format!("Failed to get interactions: {}", e)),
+        })
+    };
+
+    HttpResponse::Ok().json(interactions)
+}
+
+// GET ALL THE INTEACTIONS WHICH ARE TO EVERYONE
+pub async fn get_interactions_to_everyone(pool: web::Data<PgPool>, params: web::Path<PathParams>, query: web::Query<QueryParams>) -> impl Responder {
+    let interactions = match interact_queries::get_interactions_from_user_id(&pool, &params.user_id, &query.action).await {
+        Ok(interactions) => interactions,
+        Err(e) => return HttpResponse::InternalServerError().json(StatusResponse {
+            status: "error".to_string(),
+            message: Some(format!("Failed to get interactions: {}", e)),
+        })
+    };
+
+    HttpResponse::Ok().json(interactions)
 }

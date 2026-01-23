@@ -225,6 +225,24 @@ export async function interact(data: InteractRequest): Promise<StatusResponse> {
   });
 }
 
+// Interaction response from database
+export interface Interaction {
+  id: string;
+  from_user_id: string;
+  to_user_id: string;
+  action: string;
+  context_type?: string;
+  context_id?: string;
+  comment?: string;
+  created_at?: string;
+}
+
+export async function getInteractionsToUser(userId: string, action: 'LIKE' | 'PASS'): Promise<Interaction[]> {
+  return apiRequest<Interaction[]>(`/api/v1/interact/to/${userId}?action=${action}`, {
+    method: 'POST',
+  });
+}
+
 // Prompts
 export async function getPrompts(): Promise<UserPrompt[]> {
   return apiRequest<UserPrompt[]>('/api/v1/prompts');

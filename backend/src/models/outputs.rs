@@ -1,4 +1,7 @@
+use sqlx::types::Uuid;
 use serde::{Deserialize, Serialize};
+use sqlx::FromRow;
+use chrono::{DateTime, Utc};
 
 // Generic Responses
 #[derive(Serialize)]
@@ -168,3 +171,14 @@ pub struct SuccessResponse {
     pub success: bool,
 }
 
+#[derive(Deserialize, Serialize, FromRow, Debug)]
+pub struct Interaction {
+    pub id: Uuid,
+    pub from_user_id: Uuid,
+    pub to_user_id: Uuid,
+    pub action: String,
+    pub context_type: Option<String>,
+    pub context_id: Option<String>,
+    pub comment: Option<String>,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+}
