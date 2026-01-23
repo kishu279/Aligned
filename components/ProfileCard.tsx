@@ -29,9 +29,12 @@ function ImageCard({
     showLike?: boolean;
     onLike?: () => void;
 }) {
+    // Handle both require() format and URL strings
+    const imageSource = typeof image === "string" ? { uri: image } : image;
+
     return (
         <View style={styles.imageCard}>
-            <Image source={image} style={styles.cardImage} resizeMode="cover" />
+            <Image source={imageSource} style={styles.cardImage} resizeMode="cover" />
 
             {showLike && (
                 <TouchableOpacity style={styles.likeButton} onPress={onLike}>
@@ -74,6 +77,12 @@ function InfoCard({ profile }: { profile: Profile }) {
                         <Text style={styles.infoChipText}>{profile.age}</Text>
                     </View>
                 )}
+                {profile.pronouns && (
+                    <View style={styles.infoChip}>
+                        <Ionicons name="text-outline" size={16} color="#000" />
+                        <Text style={styles.infoChipText}>{profile.pronouns}</Text>
+                    </View>
+                )}
                 {profile.gender && (
                     <View style={styles.infoChip}>
                         <Ionicons name="male-female-outline" size={16} color="#000" />
@@ -99,7 +108,15 @@ function InfoCard({ profile }: { profile: Profile }) {
                 {profile.job && (
                     <View style={styles.detailRow}>
                         <Ionicons name="briefcase-outline" size={20} color="#000" />
-                        <Text style={styles.detailText}>{profile.job}</Text>
+                        <Text style={styles.detailText}>
+                            {profile.job}{profile.company ? ` at ${profile.company}` : ""}
+                        </Text>
+                    </View>
+                )}
+                {profile.school && (
+                    <View style={styles.detailRow}>
+                        <Ionicons name="school-outline" size={20} color="#000" />
+                        <Text style={styles.detailText}>{profile.school}</Text>
                     </View>
                 )}
                 {profile.location && (
@@ -112,6 +129,12 @@ function InfoCard({ profile }: { profile: Profile }) {
                     <View style={styles.detailRow}>
                         <Ionicons name="globe-outline" size={20} color="#000" />
                         <Text style={styles.detailText}>{profile.ethnicity}</Text>
+                    </View>
+                )}
+                {profile.religion && (
+                    <View style={styles.detailRow}>
+                        <Ionicons name="sparkles-outline" size={20} color="#000" />
+                        <Text style={styles.detailText}>{profile.religion}</Text>
                     </View>
                 )}
                 {profile.politics && (

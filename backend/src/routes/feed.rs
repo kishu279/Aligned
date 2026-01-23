@@ -79,7 +79,7 @@ pub async fn get_feed(pool: web::Data<PgPool>, req: HttpRequest) -> impl Respond
         .into_iter()
         .map(|p| UserProfile {
             id: p.user_id.clone(),
-            images: None,
+            images: p.images.and_then(|json| serde_json::from_value(json).ok()),    
             prompts: None,
             details: Some(ProfileDetails {
                 name: p.name,

@@ -202,16 +202,74 @@ pub async fn get_suggestions(
     gender_preference: Option<Vec<String>>,
     user_id: &Uuid,
 ) -> Result<Vec<SuggestionProfile>, sqlx::Error> {
+    println!("get_suggestions called with user_id: {:?}, gender_preference: {:?}", user_id, gender_preference);
     // If gender_preference is provided, filter by it; otherwise return all profiles
     let profiles = if let Some(genders) = gender_preference {
         // Filter profiles where gender is in the preference list
         sqlx::query_as::<_, SuggestionProfile>(
+            // SELECT user_id::TEXT as user_id, name, bio, birthdate::TEXT, pronouns, gender, sexuality, height,
+            //     NULL as location, job, company, school, ethnicity, politics, religion,
+            //     relationship_type, dating_intention, drinks, smokes
+            // FROM profiles 
+            // WHERE gender = ANY($1) AND user_id != $2
+            // LIMIT 20
             r#"
-            SELECT user_id::TEXT as user_id, name, bio, birthdate::TEXT, pronouns, gender, sexuality, height,
-                NULL as location, job, company, school, ethnicity, politics, religion,
-                relationship_type, dating_intention, drinks, smokes
-            FROM profiles 
-            WHERE gender = ANY($1) AND user_id != $2
+            SELECT 
+                p.user_id::TEXT AS user_id,
+                p.name,
+                p.bio,
+                p.birthdate::TEXT,
+                p.pronouns,
+                p.gender,
+                p.sexuality,
+                p.height,
+                NULL AS location,
+                p.job,
+                p.company,
+                p.school,
+                p.ethnicity,
+                p.politics,
+                p.religion,
+                p.relationship_type,
+                p.dating_intention,
+                p.drinks,
+                p.smokes,
+
+                COALESCE(
+                    json_agg(
+                        json_build_object(
+                            'image_id', ui.id,
+                            'url', ui.url,
+                            'order', ui.display_order
+                        ) ORDER BY ui.display_order
+                    ) FILTER (WHERE ui.id IS NOT NULL), 
+                    '[]'
+                ) AS images
+
+            FROM profiles p
+            LEFT JOIN user_images ui ON p.user_id = ui.user_id
+            WHERE p.gender = ANY($1) AND p.user_id != $2
+            GROUP BY 
+                p.user_id,
+                p.name,
+                p.bio,
+                p.birthdate,
+                p.pronouns,
+                p.gender,
+                p.sexuality,
+                p.height,
+                p.job,
+                p.company,
+                p.school,
+                p.ethnicity,
+                p.politics,
+                p.religion,
+                p.relationship_type,
+                p.dating_intention,
+                p.drinks,
+                p.smokes
+
+            ORDER BY RANDOM()
             LIMIT 20
         "#,
         )
@@ -235,6 +293,8 @@ pub async fn get_suggestions(
         .fetch_all(pool)
         .await?
     };
+
+    println!("profiles {:?}", profiles);
 
     Ok(profiles)
 }

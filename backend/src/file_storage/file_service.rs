@@ -89,19 +89,21 @@ impl FileService {
     }
 
     pub async fn download_file(&self, key: &str) -> anyhow::Result<DownloadResponse> {
-        let expires_in = 3600u64; // 1 hour
-        let presigning_config = PresigningConfig::expires_in(Duration::from_secs(expires_in))?;
+        // let expires_in = 3600u64; // 1 hour
+        // let presigning_config = PresigningConfig::expires_in(Duration::from_secs(expires_in))?;
 
-        let presigned_url = self.r2_client
-            .client
-            .get_object()
-            .bucket(&self.r2_client.bucket_name)
-            .key(key)
-            .presigned(presigning_config)
-            .await?;
+        // let presigned_url = self.r2_client
+        //     .client
+        //     .get_object()
+        //     .bucket(&self.r2_client.bucket_name)
+        //     .key(key)
+        //     .presigned(presigning_config)
+        //     .await?;
+
+        let image_url = format!("https://pub-5ff7537b2d084834842634757b9cfd56.r2.dev/{}", key);
 
         Ok(DownloadResponse {
-            download_url: presigned_url.uri().to_string(),
+            download_url: image_url,
         })
     }
 

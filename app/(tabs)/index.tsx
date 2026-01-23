@@ -57,6 +57,9 @@ export default function Index() {
     if (profiles.length === 0) return;
     const nextIndex = (currentIndex + 1) % profiles.length;
     setCurrentIndex(nextIndex);
+
+    console.log("NEXT INDEX = ", nextIndex);
+    console.log("Current Profile = ", currentProfile);
     scrollViewRef.current?.scrollTo({ y: 0, animated: false });
   };
 
@@ -156,21 +159,34 @@ export default function Index() {
     id: currentProfile.id,
     name: currentProfile.details?.name || "Unknown",
     age: 25, // TODO: calculate from birthdate
+    pronouns: currentProfile.details?.pronouns || "",
+    gender: currentProfile.details?.gender || "",
+    sexuality: currentProfile.details?.sexuality || "",
     location: currentProfile.details?.location || "",
     job: currentProfile.details?.job || "",
+    company: currentProfile.details?.company || "",
+    school: currentProfile.details?.school || "",
     height: currentProfile.details?.height ? `${Math.floor(currentProfile.details.height / 30.48)}'${Math.round((currentProfile.details.height % 30.48) / 2.54)}"` : "",
     bio: currentProfile.details?.bio || "",
+    ethnicity: currentProfile.details?.ethnicity || "",
     religion: currentProfile.details?.religion || "",
     politics: currentProfile.details?.politics || "",
     relationshipType: currentProfile.details?.relationship_type || "",
     datingIntention: currentProfile.details?.dating_intention || "",
+    drinks: currentProfile.details?.drinks || "",
+    smokes: currentProfile.details?.smokes || "",
     images: currentProfile.images?.map(img => img.url) || [
       "https://via.placeholder.com/400x600?text=No+Image"
     ],
-    prompts: currentProfile.prompts?.map(p => ({
+    prompts: currentProfile.prompts?.length ? currentProfile.prompts.map(p => ({
       question: p.question,
       answer: p.answer,
-    })) || [],
+    })) : [
+      {
+        question: "About me",
+        answer: currentProfile.details?.bio || "I haven't written my bio yet, but I'm excited to meet you!",
+      },
+    ],
   } : null;
 
   return (

@@ -38,7 +38,7 @@ export default function Profile() {
       if (response.images && response.images.length > 0) {
         // Images now include presigned download URLs directly
         setprofileImage(response.images[0].url);
-        console.log("IMAGE URL = ", response.images[0].url);
+        console.log("IMAGE URL = ", response.images[1].url);
       }
     } catch (error) {
       console.error("Failed to get profile:", error);
@@ -173,7 +173,13 @@ export default function Profile() {
                     transform="rotate(-90 60 60)"
                   />
                 </Svg>
-                <Image source={{ uri: profileimage! }} style={styles.avatar} />
+                <Image
+                  source={profileimage ? { uri: profileimage } : PROFILE_IMAGE}
+                  style={styles.avatar}
+                  onError={(e) =>
+                    console.log("Image loading error:", e.nativeEvent.error)
+                  }
+                />
                 <View style={styles.percentBadge}>
                   <Text style={styles.percentText}>11%</Text>
                 </View>

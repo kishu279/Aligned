@@ -13,6 +13,8 @@ export interface Profile {
   height?: string;
   location?: string;
   job?: string;
+  company?: string;
+  school?: string;
   ethnicity?: string;
   politics?: string;
   religion?: string;

@@ -1,4 +1,4 @@
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 // Generic Responses
 #[derive(Serialize)]
@@ -38,8 +38,9 @@ pub struct UserProfile {
     pub details: Option<ProfileDetails>,
 }
 
-#[derive(Serialize, Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct UserImage {
+    #[serde(alias = "image_id")]
     pub id: String,
     pub url: String,
     pub order: i32,
@@ -97,6 +98,7 @@ pub struct SuggestionProfile {
     pub dating_intention: Option<String>,
     pub drinks: Option<String>,
     pub smokes: Option<String>,
+    pub images: Option<serde_json::Value>,
 }
 
 #[derive(Serialize)]
