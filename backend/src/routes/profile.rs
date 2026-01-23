@@ -17,7 +17,11 @@ use crate::db::{profile_queries, prompt_queries, images_queries, user_queries};
 use firebase_auth::FirebaseUser;
 use crate::file_storage::{FileService, SignedUrlResponse, DownloadResponse};
 
-pub async fn get_profile(pool: web::Data<PgPool>, req: HttpRequest) -> impl Responder {
+pub async fn get_profile(
+    pool: web::Data<PgPool>, 
+    req: HttpRequest,
+    file_service: web::Data<FileService>,
+) -> impl Responder {
     let user: FirebaseUser = match req.extensions().get::<FirebaseUser>().cloned() {
         Some(u) => u,
         None => return HttpResponse::Unauthorized().json(StatusResponse {
@@ -48,15 +52,34 @@ pub async fn get_profile(pool: web::Data<PgPool>, req: HttpRequest) -> impl Resp
         Err(_) => None,
     };
 
-    // Get images and map tuples to UserImage structs
-    let user_images = match images_queries::get_images(&pool, &user_id).await {
-        Ok(rows) => Some(rows.into_iter().map(|(id, url, order)| UserImage {
-            id: id.to_string(),
-            url,
-            order,
-        }).collect()),
+    // Get images and resolve download URLs
+    let user_images = match images_queries::get_user_images(&pool, &user_id).await {
+        Ok(rows) => {
+            let mut images = Vec::new();
+            for (id, key, order) in rows {
+                // Get presigned download URL for each image
+                let download_url = match file_service.download_file(&key).await {
+                    Ok(response) => response.download_url,
+                    Err(_) => key, // Fallback to key if download URL fails
+                };
+                images.push(UserImage {
+                    id: id.to_string(),
+                    url: download_url,
+                    order,
+                });
+            }
+            Some(images)
+
+            // rows.into_iter().map(|(id, key, order)| UserImage {
+            //     id: id.to_string(),
+            //     url: key,
+            //     order,
+            // }).collect() // error
+        },
         Err(_) => None,
     };
+
+    println!("User images: {:?}", user_images);
 
     // Get prompts and map to UserPrompt structs
     let user_prompts = match prompt_queries::get_user_prompts(&pool, &user_id).await {
@@ -178,37 +201,44 @@ pub async fn get_upload_url(
     })
 }
 
-pub async fn view_profile_images(
-    pool: web::Data<PgPool>, 
-    req: HttpRequest, 
-    body: web::Json<UploadUrlRequest>,
-    file_service: web::Data<FileService>,
-) -> impl Responder {
-    let Some(user) = req.extensions().get::<FirebaseUser>().cloned() else {
-        return HttpResponse::Unauthorized().json(StatusResponse {
-            status: "error".to_string(),
-            message: Some("No authentication claims found".to_string()),
-        })
-    };
+// pub async fn view_profile_images(
+//     pool: web::Data<PgPool>, 
+//     req: HttpRequest, 
+//     body: web::Json<UploadUrlRequest>,
+//     file_service: web::Data<FileService>,
+// ) -> impl Responder {
+//     let Some(user) = req.extensions().get::<FirebaseUser>().cloned() else {
+//         return HttpResponse::Unauthorized().json(StatusResponse {
+//             status: "error".to_string(),
+//             message: Some("No authentication claims found".to_string()),
+//         })
+//     };
 
-    let user_id = match user_queries::get_user_id_by_email(&pool, user.email.as_deref()).await {
-        Ok(Some(id)) => id,
-        Ok(None) => return HttpResponse::NotFound().json(StatusResponse {
-            status: "error".to_string(),
-            message: Some("User not found".to_string()),
-        }),
-        Err(e) => return HttpResponse::InternalServerError().json(StatusResponse {
-            status: "error".to_string(),
-            message: Some(format!("Database error: {}", e)),
-        })
-    };
+//     let user_id = match user_queries::get_user_id_by_email(&pool, user.email.as_deref()).await {
+//         Ok(Some(id)) => id,
+//         Ok(None) => return HttpResponse::NotFound().json(StatusResponse {
+//             status: "error".to_string(),
+//             message: Some("User not found".to_string()),
+//         }),
+//         Err(e) => return HttpResponse::InternalServerError().json(StatusResponse {
+//             status: "error".to_string(),
+//             message: Some(format!("Database error: {}", e)),
+//         })
+//     };
 
-    // TODO: Implement view_profile_images logic
-    HttpResponse::Ok().json(StatusResponse {
-        status: "success".to_string(),
-        message: Some("Not implemented yet".to_string()),
-    })
-}
+//     // TODO: Implement view_profile_images logic
+//     let user_images = match images_queries::get_user_images(&pool, &user_id).await {
+//         Some(u) => 
+//     }
+
+//     match file_service.download_file(&body.key).await {
+//         Ok(response) => HttpResponse::Ok().json(response),
+//         Err(_) => HttpResponse::NotFound().json(StatusResponse {
+//             status: "error".to_string(),
+//             message: Some("File not found".to_string()),
+//         })
+//     }
+// }
 
 // WORKING
 pub async fn get_download_url(
@@ -217,27 +247,7 @@ pub async fn get_download_url(
     pool: web::Data<PgPool>,
     file_service: web::Data<FileService>,
 ) -> impl Responder {
-
     println!("Download URL: {}", body.key);
-    
-    // let Some(user) = req.extensions().get::<FirebaseUser>().cloned() else {
-    //     return HttpResponse::Unauthorized().json(StatusResponse {
-    //         status: "error".to_string(),
-    //         message: Some("No authentication claims found".to_string()),
-    //     })
-    // };
-
-    // let user_id = match user_queries::get_user_id_by_email(&pool, user.email.as_deref()).await {
-    //     Ok(Some(id)) => id,
-    //     Ok(None) => return HttpResponse::NotFound().json(StatusResponse {
-    //         status: "error".to_string(),
-    //         message: Some("User not found".to_string()),
-    //     }),
-    //     Err(e) => return HttpResponse::InternalServerError().json(StatusResponse {
-    //         status: "error".to_string(),
-    //         message: Some(format!("Database error: {}", e)),
-    //     })
-    // };
 
     match file_service.download_file(&body.key).await {
         Ok(response) => HttpResponse::Ok().json(response),

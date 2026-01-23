@@ -114,7 +114,7 @@ async fn main() -> std::io::Result<()> {
             // .route("/profile/images", web::post().to(profile::upload_profile_images))
             // New R2 signed URL routes
             .route("/files/upload-url", web::post().to(profile::get_upload_url))
-            .route("/files/view", web::post().to(profile::view_profile_images))
+            // .route("/files/view", web::post().to(profile::view_profile_images)) // TODO: implement
             .route("/files/download-url", web::post().to(profile::get_download_url))
             .route("/profile/finalize", web::post().to(profile::finalize_profile))
             .route("/profile", web::delete().to(profile::delete_account))

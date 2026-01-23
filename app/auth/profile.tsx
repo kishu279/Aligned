@@ -130,12 +130,10 @@ export default function ProfileSetupScreen() {
             });
 
             if (response.status === "success") {
-                
+                router.replace("/(tabs)");
             } else {
-
+                router.replace("/auth/profile")
             }
-
-            router.replace("/(tabs)");
         } catch (error) {
             console.error("Failed to create profile:", error);
             Alert.alert("Error", "Failed to save profile. Please try again.");

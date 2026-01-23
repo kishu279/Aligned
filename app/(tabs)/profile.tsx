@@ -15,7 +15,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Circle } from "react-native-svg";
 // import PROFILE_IMAGE from "./../../assets/icons/profile.png";
 import * as ImagePicker from 'expo-image-picker';
-import { getUploadUrl } from '@/lib/api/endpoints';
+import { getMyProfile, getUploadUrl } from '@/lib/api/endpoints';
 
 const PROFILE_IMAGE = { uri: "https://upload.wikimedia.org/wikipedia/commons/8/89/Portrait_Placeholder.png" };
 
@@ -25,7 +25,33 @@ export default function Profile() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<Tab>("Get more");
   const [isUploading, setIsUploading] = useState<boolean>(false);
-  const [image, setImage] = useState<string | null>(null);
+  const [profileimage, setprofileImage] = useState<string | null>(null);
+  const [images, setImages] = useState<string | null>(null);
+  const [image, setImage] = useState<string | null>(null)
+  const [loading, setLoading] = useState<Boolean>(false)
+
+  const getProfile = async () => {
+    setLoading(true)
+    try {
+      const response = await getMyProfile();
+
+      if (response.images && response.images.length > 0) {
+        // Images now include presigned download URLs directly
+        setprofileImage(response.images[0].url);
+        console.log("IMAGE URL = ", response.images[0].url);
+      }
+    } catch (error) {
+      console.error("Failed to get profile:", error);
+    }
+    finally {
+      setLoading(false)
+    }
+  };
+
+  React.useEffect(() => {
+    getProfile();
+
+  }, []);
 
   const uploadImageToR2 = async (imageUri: string, fileName: string) => {
     try {
@@ -147,7 +173,7 @@ export default function Profile() {
                     transform="rotate(-90 60 60)"
                   />
                 </Svg>
-                <Image source={image ? { uri: image } : PROFILE_IMAGE} style={styles.avatar} />
+                <Image source={{ uri: profileimage! }} style={styles.avatar} />
                 <View style={styles.percentBadge}>
                   <Text style={styles.percentText}>11%</Text>
                 </View>

@@ -48,3 +48,11 @@ app-example
 # Auth
 google-services.json
 signing-certificates.txt
+
+AUTH_REFACTOR_PLAN.md
+/app/(tabs)/debug.tsx
+/assets/icons/debug.png
+backend-schema.md
+TASK.md
+# docs/
+# API.md

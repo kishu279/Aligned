@@ -38,7 +38,7 @@ pub struct UserProfile {
     pub details: Option<ProfileDetails>,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Debug)]
 pub struct UserImage {
     pub id: String,
     pub url: String,
