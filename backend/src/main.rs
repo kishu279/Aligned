@@ -89,7 +89,13 @@ async fn main() -> std::io::Result<()> {
     ).await;
     let file_service = web::Data::new(file_storage::FileService::new(r2_client));
 
-    println!("Starting server on 0.0.0.0:8080 (accessible from network)");
+    sqlx::migrate!("./migrations")
+        .run(&pool)
+        .await
+        .expect("Failed to sync migrations to Neon");
+
+    println!("Backend live at http://{}", address);
+
     HttpServer::new(move || {
 
         // Create the auth middleware
@@ -150,6 +156,7 @@ async fn main() -> std::io::Result<()> {
     // .bind(("0.0.0.0", 8080))?
     .run()
     .await
+
 }
 
 /*
