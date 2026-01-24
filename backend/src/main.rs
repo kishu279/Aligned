@@ -30,6 +30,13 @@ async fn health_check() -> impl Responder {
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
+    // RENDER 
+    // Render provides a PORT environment variable. Default to 8080 for local dev.
+    let port = env::var("PORT").unwrap_or_else(|_| "8080".to_string());
+    let address = format!("0.0.0.0:{}", port);
+    
+    println!("Starting server on {}", address);
+
     // Load the .env file
     dotenv::dotenv().ok();
 
@@ -139,7 +146,8 @@ async fn main() -> std::io::Result<()> {
         .route("/prompts/{order}", web::delete().to(prompts::delete_prompt)),
         )
     })
-    .bind(("0.0.0.0", 8080))?
+    .bind(address)?
+    // .bind(("0.0.0.0", 8080))?
     .run()
     .await
 }
