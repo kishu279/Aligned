@@ -1,8 +1,10 @@
 import * as SecureStore from 'expo-secure-store';
 
+
 // Using ADB reverse port forwarding: `adb reverse tcp:8080 tcp:8080`
 // This lets the Android device access localhost:8080 through USB
-const API_BASE_URL = 'http://localhost:8080';
+// const API_BASE_URL = 'http://localhost:8080';
+const API_BASE_URL = 'https://aligned-1crf.onrender.com';
 
 // Token storage
 const TOKEN_KEY = 'auth_token';

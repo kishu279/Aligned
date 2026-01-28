@@ -1,4 +1,3 @@
-
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
@@ -14,10 +13,12 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Circle } from "react-native-svg";
 // import PROFILE_IMAGE from "./../../assets/icons/profile.png";
-import * as ImagePicker from 'expo-image-picker';
-import { getMyProfile, getUploadUrl } from '@/lib/api/endpoints';
+import * as ImagePicker from "expo-image-picker";
+import { getMyProfile, getUploadUrl } from "@/lib/api/endpoints";
 
-const PROFILE_IMAGE = { uri: "https://upload.wikimedia.org/wikipedia/commons/8/89/Portrait_Placeholder.png" };
+const PROFILE_IMAGE = {
+  uri: "https://upload.wikimedia.org/wikipedia/commons/8/89/Portrait_Placeholder.png",
+};
 
 type Tab = "Get more" | "Safety" | "My Aligned";
 
@@ -27,14 +28,14 @@ export default function Profile() {
   const [isUploading, setIsUploading] = useState<boolean>(false);
   const [profileimage, setprofileImage] = useState<string | null>(null);
   const [images, setImages] = useState<string | null>(null);
-  const [image, setImage] = useState<string | null>(null)
-  const [loading, setLoading] = useState<Boolean>(false)
+  const [image, setImage] = useState<string | null>(null);
+  const [loading, setLoading] = useState<Boolean>(false);
 
   const getProfile = async () => {
-    setLoading(true)
+    setLoading(true);
     try {
       const response = await getMyProfile();
-      console.log(response.details)
+      console.log(response.details);
 
       if (response.images && response.images.length > 0) {
         // Images now include presigned download URLs directly
@@ -43,22 +44,20 @@ export default function Profile() {
       }
     } catch (error) {
       console.error("Failed to get profile:", error);
-    }
-    finally {
-      setLoading(false)
+    } finally {
+      setLoading(false);
     }
   };
 
   React.useEffect(() => {
     getProfile();
-
   }, []);
 
   const uploadImageToR2 = async (imageUri: string, fileName: string) => {
     try {
       // Get file extension and mime type
-      const extension = fileName.split('.').pop()?.toLowerCase() || 'jpg';
-      const mimeType = extension === 'png' ? 'image/png' : 'image/jpeg';
+      const extension = fileName.split(".").pop()?.toLowerCase() || "jpg";
+      const mimeType = extension === "png" ? "image/png" : "image/jpeg";
 
       // Get signed upload URL from backend
       const { upload_url, key } = await getUploadUrl(fileName, mimeType);
@@ -68,21 +67,21 @@ export default function Profile() {
       const blob = await response.blob();
 
       const uploadResponse = await fetch(upload_url, {
-        method: 'PUT',
+        method: "PUT",
         body: blob,
         headers: {
-          'Content-Type': mimeType,
+          "Content-Type": mimeType,
         },
       });
 
       if (!uploadResponse.ok) {
-        throw new Error('Failed to upload to R2');
+        throw new Error("Failed to upload to R2");
       }
 
-      console.log('Image uploaded successfully, key:', key);
+      console.log("Image uploaded successfully, key:", key);
       return key;
     } catch (error) {
-      console.error('Upload error:', error);
+      console.error("Upload error:", error);
       throw error;
     }
   };
@@ -91,14 +90,15 @@ export default function Profile() {
     setIsUploading(true);
     try {
       // Request permission (not just check)
-      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      const permission =
+        await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (!permission.granted) {
         alert("Permission to access media library is required to pick images.");
         return;
       }
 
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ['images'], // Use new MediaType array format instead of deprecated MediaTypeOptions
+        mediaTypes: ["images"], // Use new MediaType array format instead of deprecated MediaTypeOptions
         allowsEditing: true,
         quality: 0.8,
         aspect: [1, 1],
@@ -106,7 +106,7 @@ export default function Profile() {
 
       if (!result.canceled && result.assets && result.assets.length > 0) {
         const asset = result.assets[0];
-        console.log('Selected image:', asset.uri);
+        console.log("Selected image:", asset.uri);
 
         // Set local preview immediately
         setImage(asset.uri);
@@ -115,35 +115,39 @@ export default function Profile() {
         const fileName = asset.fileName || `profile_${Date.now()}.jpg`;
         try {
           const key = await uploadImageToR2(asset.uri, fileName);
-          console.log('Upload complete, key:', key);
+          console.log("Upload complete, key:", key);
           // TODO: Save the key to user profile in database
         } catch (uploadError) {
-          console.error('Failed to upload image:', uploadError);
+          console.error("Failed to upload image:", uploadError);
           // Keep the local preview even if upload fails
         }
       }
-
     } catch (error) {
-      console.error('Image picker error:', error);
-      alert('Failed to pick image. Please try again.');
+      console.error("Image picker error:", error);
+      alert("Failed to pick image. Please try again.");
     } finally {
       setIsUploading(false);
     }
-  }
+  };
 
   return (
     <View style={styles.container}>
       <SafeAreaView style={styles.safeArea} edges={["top"]}>
-        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
           {/* Header */}
           <View style={styles.header}>
             <View style={styles.headerContent}>
               <Text style={styles.headerLogo}>Align</Text>
               <View style={styles.headerRightIcons}>
-                <TouchableOpacity onPress={() => router.push('/dating-preferences')}>
+                <TouchableOpacity
+                  onPress={() => router.push("/dating-preferences")}
+                >
                   <Ionicons name="options-outline" size={24} color="#000" />
                 </TouchableOpacity>
-                <TouchableOpacity onPress={() => router.push('/settings')}>
+                <TouchableOpacity onPress={() => router.push("/settings")}>
                   <Ionicons name="settings-outline" size={24} color="#000" />
                 </TouchableOpacity>
               </View>
@@ -152,7 +156,12 @@ export default function Profile() {
             <View style={styles.profileInfo}>
               <View style={styles.avatarContainer}>
                 {/* Progress Circle */}
-                <Svg height="120" width="120" viewBox="0 0 120 120" style={styles.progressCircle}>
+                <Svg
+                  height="120"
+                  width="120"
+                  viewBox="0 0 120 120"
+                  style={styles.progressCircle}
+                >
                   <Circle
                     cx="60"
                     cy="60"
@@ -199,7 +208,11 @@ export default function Profile() {
 
               <View style={styles.nameContainer}>
                 <Text style={styles.name}>Shubh</Text>
-                <MaterialCommunityIcons name="check-decagram" size={22} color="#b4b4b4" />
+                <MaterialCommunityIcons
+                  name="check-decagram"
+                  size={22}
+                  color="#b4b4b4"
+                />
               </View>
               <Text style={styles.statusText}>Incomplete profile</Text>
             </View>
@@ -213,10 +226,17 @@ export default function Profile() {
                 style={[styles.tab, activeTab === tab && styles.activeTab]}
                 onPress={() => setActiveTab(tab)}
               >
-                <Text style={[styles.tabText, activeTab === tab && styles.activeTabText]}>
+                <Text
+                  style={[
+                    styles.tabText,
+                    activeTab === tab && styles.activeTabText,
+                  ]}
+                >
                   {tab}
                 </Text>
-                {tab === "My Aligned" && <View style={styles.notificationDot} />}
+                {tab === "My Aligned" && (
+                  <View style={styles.notificationDot} />
+                )}
               </TouchableOpacity>
             ))}
           </View>
@@ -234,7 +254,9 @@ export default function Profile() {
                   />
                   <View style={styles.bannerOverlay}>
                     <Text style={styles.proTitle}>Aligned Pro</Text>
-                    <Text style={styles.proSubtitle}>Get seen sooner and{"\n"}go on 3x as many dates</Text>
+                    <Text style={styles.proSubtitle}>
+                      Get seen sooner and{"\n"}go on 3x as many dates
+                    </Text>
                     <TouchableOpacity style={styles.upgradeBtn}>
                       <Text style={styles.upgradeBtnText}>Upgrade</Text>
                     </TouchableOpacity>
@@ -243,25 +265,37 @@ export default function Profile() {
 
                 {/* Boost Card */}
                 <View style={styles.optionCard}>
-                  <View style={[styles.iconCircle, { backgroundColor: "#1A7474" }]}>
+                  <View
+                    style={[styles.iconCircle, { backgroundColor: "#1A7474" }]}
+                  >
                     <Ionicons name="flash" size={24} color="#fff" />
-                    <View style={styles.badgeCount}><Text style={styles.badgeText}>0</Text></View>
+                    <View style={styles.badgeCount}>
+                      <Text style={styles.badgeText}>0</Text>
+                    </View>
                   </View>
                   <View style={styles.optionTextContainer}>
                     <Text style={styles.optionTitle}>Boost</Text>
-                    <Text style={styles.optionSubtitle}>Get seen by 11X more people</Text>
+                    <Text style={styles.optionSubtitle}>
+                      Get seen by 11X more people
+                    </Text>
                   </View>
                 </View>
 
                 {/* Roses Card */}
                 <View style={styles.optionCard}>
-                  <View style={[styles.iconCircle, { backgroundColor: "#9D8CA1" }]}>
+                  <View
+                    style={[styles.iconCircle, { backgroundColor: "#9D8CA1" }]}
+                  >
                     <Ionicons name="rose" size={24} color="#fff" />
-                    <View style={styles.badgeCount}><Text style={styles.badgeText}>0</Text></View>
+                    <View style={styles.badgeCount}>
+                      <Text style={styles.badgeText}>0</Text>
+                    </View>
                   </View>
                   <View style={styles.optionTextContainer}>
                     <Text style={styles.optionTitle}>Roses</Text>
-                    <Text style={styles.optionSubtitle}>2x as likely to lead to a date</Text>
+                    <Text style={styles.optionSubtitle}>
+                      2x as likely to lead to a date
+                    </Text>
                   </View>
                 </View>
               </View>
@@ -270,44 +304,72 @@ export default function Profile() {
             {activeTab === "Safety" && (
               <View style={styles.safetyContent}>
                 <View style={styles.optionCard}>
-                  <View style={[styles.iconCircle, { backgroundColor: "#F5F5F5" }]}>
-                    <MaterialCommunityIcons name="shield-check-outline" size={24} color="#000" />
+                  <View
+                    style={[styles.iconCircle, { backgroundColor: "#F5F5F5" }]}
+                  >
+                    <MaterialCommunityIcons
+                      name="shield-check-outline"
+                      size={24}
+                      color="#000"
+                    />
                   </View>
                   <View style={styles.optionTextContainer}>
                     <Text style={styles.optionTitle}>Selfie Verification</Text>
-                    <Text style={styles.optionSubtitle}>You're not verified yet.</Text>
+                    <Text style={styles.optionSubtitle}>
+                      You're not verified yet.
+                    </Text>
                   </View>
                 </View>
 
                 <View style={styles.optionCard}>
-                  <View style={[styles.iconCircle, { backgroundColor: "#E3E4FA" }]}>
-                    <MaterialCommunityIcons name="eye-off-outline" size={24} color="#000" />
-                    <View style={styles.checkBadge}><Ionicons name="checkmark" size={10} color="#fff" /></View>
+                  <View
+                    style={[styles.iconCircle, { backgroundColor: "#E3E4FA" }]}
+                  >
+                    <MaterialCommunityIcons
+                      name="eye-off-outline"
+                      size={24}
+                      color="#000"
+                    />
+                    <View style={styles.checkBadge}>
+                      <Ionicons name="checkmark" size={10} color="#fff" />
+                    </View>
                   </View>
                   <View style={styles.optionTextContainer}>
                     <Text style={styles.optionTitle}>Comment Filter</Text>
-                    <Text style={styles.optionSubtitle}>Hiding likes with disrespectful language.</Text>
+                    <Text style={styles.optionSubtitle}>
+                      Hiding likes with disrespectful language.
+                    </Text>
                   </View>
                 </View>
 
                 <View style={styles.optionCard}>
-                  <View style={[styles.iconCircle, { backgroundColor: "#F5F5F5" }]}>
+                  <View
+                    style={[styles.iconCircle, { backgroundColor: "#F5F5F5" }]}
+                  >
                     <Ionicons name="hand-left-outline" size={24} color="#000" />
                   </View>
                   <View style={styles.optionTextContainer}>
                     <Text style={styles.optionTitle}>Block List</Text>
-                    <Text style={styles.optionSubtitle}>Block people you know.</Text>
+                    <Text style={styles.optionSubtitle}>
+                      Block people you know.
+                    </Text>
                   </View>
                 </View>
 
-                <Text style={styles.sectionTitle}>Explore safety resources</Text>
+                <Text style={styles.sectionTitle}>
+                  Explore safety resources
+                </Text>
                 <View style={styles.resourcesRow}>
                   <TouchableOpacity style={styles.resourceBtn}>
                     <Ionicons name="call-outline" size={20} color="#000" />
                     <Text style={styles.resourceText}>Crisis Hotlines</Text>
                   </TouchableOpacity>
                   <TouchableOpacity style={styles.resourceBtn}>
-                    <Ionicons name="help-circle-outline" size={20} color="#000" />
+                    <Ionicons
+                      name="help-circle-outline"
+                      size={20}
+                      color="#000"
+                    />
                     <Text style={styles.resourceText}>Help Center</Text>
                   </TouchableOpacity>
                 </View>
@@ -322,30 +384,62 @@ export default function Profile() {
                     <Text style={styles.logoLetter}>A</Text>
                     <View style={styles.alertDot} />
                   </View>
-                  <Text style={styles.completeTitle}>Complete your profile</Text>
-                  <Text style={styles.completeSubtitle}>You're almost there — just a few more details to start matching.</Text>
+                  <Text style={styles.completeTitle}>
+                    Complete your profile
+                  </Text>
+                  <Text style={styles.completeSubtitle}>
+                    You're almost there — just a few more details to start
+                    matching.
+                  </Text>
                   <TouchableOpacity style={styles.editProfileBtn}>
                     <Text style={styles.editProfileBtnText}>Edit profile</Text>
                   </TouchableOpacity>
                 </View>
 
+                <TouchableOpacity
+                  style={styles.optionCard}
+                  onPress={() => router.push("/profile-update")}
+                  activeOpacity={0.7}
+                >
+                  <View
+                    style={[styles.iconCircle, { backgroundColor: "#F5F5F5" }]}
+                  >
+                    <Ionicons name="person-outline" size={24} color="#000" />
+                  </View>
+                  <View style={styles.optionTextContainer}>
+                    <Text style={styles.optionTitle}>Profile Info</Text>
+                    <Text style={styles.optionSubtitle}>
+                      View your profile details
+                    </Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={20} color="#999" />
+                </TouchableOpacity>
+
                 <View style={styles.optionCard}>
-                  <View style={[styles.iconCircle, { backgroundColor: "#F5F5F5" }]}>
+                  <View
+                    style={[styles.iconCircle, { backgroundColor: "#F5F5F5" }]}
+                  >
                     <Ionicons name="help" size={24} color="#000" />
                   </View>
                   <View style={styles.optionTextContainer}>
                     <Text style={styles.optionTitle}>Help Center</Text>
-                    <Text style={styles.optionSubtitle}>Safety, Security, and more</Text>
+                    <Text style={styles.optionSubtitle}>
+                      Safety, Security, and more
+                    </Text>
                   </View>
                 </View>
 
                 <View style={styles.optionCard}>
-                  <View style={[styles.iconCircle, { backgroundColor: "#F5F5F5" }]}>
+                  <View
+                    style={[styles.iconCircle, { backgroundColor: "#F5F5F5" }]}
+                  >
                     <Ionicons name="bulb-outline" size={24} color="#000" />
                   </View>
                   <View style={styles.optionTextContainer}>
                     <Text style={styles.optionTitle}>What Works</Text>
-                    <Text style={styles.optionSubtitle}>Check out our expert dating tips</Text>
+                    <Text style={styles.optionSubtitle}>
+                      Check out our expert dating tips
+                    </Text>
                   </View>
                 </View>
               </View>
