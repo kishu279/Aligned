@@ -1,10 +1,10 @@
 #![allow(unused)]
 
 // use crate::jwtauth::Claims;
-use actix_web::{App, HttpResponse, HttpServer, Responder, web, middleware::Logger};
-use actix_web_httpauth::middleware::HttpAuthentication;
 use actix_cors::Cors;
 use actix_web::http::header;
+use actix_web::{App, HttpResponse, HttpServer, Responder, middleware::Logger, web};
+use actix_web_httpauth::middleware::HttpAuthentication;
 use sqlx::postgres::PgPoolOptions;
 // use dotenv::dotenv;
 use std::collections::HashMap;
@@ -15,12 +15,12 @@ use std::time::Duration;
 use firebase_auth::{FirebaseAuth, FirebaseUser};
 
 mod db;
+mod file_storage;
+mod firebaseauth;
 mod jwtauth;
 mod models;
-mod routes;
-mod firebaseauth;
-mod file_storage;
 mod r2_client;
+mod routes;
 
 use routes::{auth, feed, interactions, matches, profile, prompts, user};
 
@@ -30,11 +30,11 @@ async fn health_check() -> impl Responder {
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    // RENDER 
+    // RENDER
     // Render provides a PORT environment variable. Default to 8080 for local dev.
     let port = env::var("PORT").unwrap_or_else(|_| "8080".to_string());
     let address = format!("0.0.0.0:{}", port);
-    
+
     println!("Starting server on {}", address);
 
     // Load the .env file
@@ -86,77 +86,90 @@ async fn main() -> std::io::Result<()> {
         &r2_access_key,
         &r2_secret_key,
         &r2_bucket_name,
-    ).await;
+    )
+    .await;
     let file_service = web::Data::new(file_storage::FileService::new(r2_client));
 
-    sqlx::migrate!("./migrations")
-        .run(&pool)
-        .await
-        .expect("Failed to sync migrations to Neon");
+    // sqlx::migrate!("./migrations")
+    //     .run(&pool)
+    //     .await
+    //     .expect("Failed to sync migrations to Neon");
 
     println!("Backend live at http://{}", address);
 
     HttpServer::new(move || {
-
         // Create the auth middleware
         // let auth = HttpAuthentication::bearer(Claims::jwt_validator);
 
         App::new()
-        .app_data(app_firebase.clone())
-        .wrap(Cors::permissive())
-        .route("/test", web::get().to(health_check))
-        .route("/health", web::get().to(health_check))
-        
-        // Protected routes (auth required) - wrapped in a scope with middleware
-        .service(
-            web::scope("/api/v1")
+            .app_data(app_firebase.clone())
             .wrap(Cors::permissive())
-            .wrap(firebaseauth::middleware::FirebaseAuthMiddleware)
-            .app_data(web::Data::new(pool.clone()))
-            .app_data(file_service.clone())
-            .route("/test", web::get().to(health_check))  // Test route in /api/v1 scope
-            .route("/user/create", web::post().to(user::create_user))
-            .route("/user/check", web::post().to(user::check_user_exists))
-            .route("/user/get", web::post().to(user::get_user))
-            // .wrap(auth)
-            .route("/profile/me", web::get().to(profile::get_profile))
-            .route("/profile", web::post().to(profile::update_profile))
-            .route("/user/preferences", web::post().to(user::update_user_preference))
-            // Legacy image routes (deprecated)
-            // .route("/user/images", web::post().to(profile::upload_user_images))
-            // .route("/profile/images", web::post().to(profile::upload_profile_images))
-            // New R2 signed URL routes
-            .route("/files/upload-url", web::post().to(profile::get_upload_url))
-            // .route("/files/view", web::post().to(profile::view_profile_images)) // TODO: implement
-            .route("/files/download-url", web::post().to(profile::get_download_url))
-            .route("/profile/finalize", web::post().to(profile::finalize_profile))
-            .route("/profile", web::delete().to(profile::delete_account))
-            .route("/feed", web::get().to(feed::get_feed))
-            .route("/interact", web::post().to(interactions::interact))
-            .route("/interact/me/{user_id}", web::post().to(interactions::get_interactions_for_me)) // who inacted to me
-            .route("/interact/to/{user_id}", web::post().to(interactions::get_interactions_to_everyone))
-            
-            .route("/matches", web::get().to(matches::get_matches))
-            .route(
-                "/matches/{id}/messages",
-                    web::get().to(matches::get_messages),
-                )
-            .route(
-                    "/matches/{id}/messages",
-                    web::post().to(matches::send_message),
-                )
-            // Prompts routes
-            .route("/prompts", web::get().to(prompts::get_prompts))
-                .route("/prompts", web::post().to(prompts::create_prompt))
-                .route("/prompts/{order}", web::put().to(prompts::update_prompt))
-        .route("/prompts/{order}", web::delete().to(prompts::delete_prompt)),
-        )
+            .route("/test", web::get().to(health_check))
+            .route("/health", web::get().to(health_check))
+            // Protected routes (auth required) - wrapped in a scope with middleware
+            .service(
+                web::scope("/api/v1")
+                    .wrap(Cors::permissive())
+                    .wrap(firebaseauth::middleware::FirebaseAuthMiddleware)
+                    .app_data(web::Data::new(pool.clone()))
+                    .app_data(file_service.clone())
+                    .route("/test", web::get().to(health_check)) // Test route in /api/v1 scope
+                    .route("/user/create", web::post().to(user::create_user))
+                    .route("/user/check", web::post().to(user::check_user_exists))
+                    .route("/user/get", web::post().to(user::get_user))
+                    // .wrap(auth)
+                    .route("/profile/me", web::get().to(profile::get_profile))
+                    .route("/profile", web::post().to(profile::update_profile))
+                    .route(
+                        "/user/preferences",
+                        web::post().to(user::update_user_preference),
+                    )
+                    .route(
+                        "/user/preferences",
+                        web::get().to(user::get_user_preferences),
+                    )
+                    
+                    .route("/files/upload-url", web::post().to(profile::get_upload_url))
+                    
+                    .route(
+                        "/files/download-url",
+                        web::post().to(profile::get_download_url),
+                    )
+                    .route(
+                        "/profile/finalize",
+                        web::post().to(profile::finalize_profile),
+                    )
+                    .route("/profile", web::delete().to(profile::delete_account))
+                    .route("/feed", web::get().to(feed::get_feed))
+                    .route("/interact", web::post().to(interactions::interact))
+                    .route(
+                        "/interact/me/{user_id}",
+                        web::post().to(interactions::get_interactions_for_me),
+                    ) // who inacted to me
+                    .route(
+                        "/interact/to/{user_id}",
+                        web::post().to(interactions::get_interactions_to_everyone),
+                    )
+                    .route("/matches", web::get().to(matches::get_matches))
+                    .route(
+                        "/matches/{id}/messages",
+                        web::get().to(matches::get_messages),
+                    )
+                    .route(
+                        "/matches/{id}/messages",
+                        web::post().to(matches::send_message),
+                    )
+                    // Prompts routes
+                    .route("/prompts", web::get().to(prompts::get_prompts))
+                    .route("/prompts", web::post().to(prompts::create_prompt))
+                    .route("/prompts/{order}", web::put().to(prompts::update_prompt))
+                    .route("/prompts/{order}", web::delete().to(prompts::delete_prompt)),
+            )
     })
     .bind(address)?
     // .bind(("0.0.0.0", 8080))?
     .run()
     .await
-
 }
 
 /*

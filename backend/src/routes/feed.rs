@@ -1,4 +1,4 @@
-use actix_web::{HttpResponse, Responder, web, HttpRequest, HttpMessage};
+use actix_web::{HttpMessage, HttpRequest, HttpResponse, Responder, web};
 use sqlx::PgPool;
 
 use crate::db::{profile_queries, user_queries};
@@ -12,10 +12,12 @@ pub async fn get_feed(pool: web::Data<PgPool>, req: HttpRequest) -> impl Respond
 
     let user: FirebaseUser = match req.extensions().get::<FirebaseUser>().cloned() {
         Some(user) => user,
-        None => return HttpResponse::Unauthorized().json(StatusResponse {
-            status: "error".to_string(),
-            message: Some("Unauthorized".to_string()),
-        })
+        None => {
+            return HttpResponse::Unauthorized().json(StatusResponse {
+                status: "error".to_string(),
+                message: Some("Unauthorized".to_string()),
+            });
+        }
     };
 
     println!("User details {:?}", user.email);
@@ -26,7 +28,9 @@ pub async fn get_feed(pool: web::Data<PgPool>, req: HttpRequest) -> impl Respond
         &pool,
         user.email.as_deref(),
         None,
-    ).await {
+    )
+    .await
+    {
         Ok(Some((uid, prefs))) => (uid, prefs),
         Ok(None) => {
             return HttpResponse::NotFound().json(StatusResponse {
@@ -79,7 +83,7 @@ pub async fn get_feed(pool: web::Data<PgPool>, req: HttpRequest) -> impl Respond
         .into_iter()
         .map(|p| UserProfile {
             id: p.user_id.clone(),
-            images: p.images.and_then(|json| serde_json::from_value(json).ok()),    
+            images: p.images.and_then(|json| serde_json::from_value(json).ok()),
             prompts: None,
             details: Some(ProfileDetails {
                 name: p.name,
@@ -103,6 +107,8 @@ pub async fn get_feed(pool: web::Data<PgPool>, req: HttpRequest) -> impl Respond
             }),
         })
         .collect();
+
+    println!("Profiles {:?}", profiles);
 
     HttpResponse::Ok().json(FeedResponse { profiles })
 }

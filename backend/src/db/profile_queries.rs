@@ -202,7 +202,10 @@ pub async fn get_suggestions(
     gender_preference: Option<Vec<String>>,
     user_id: &Uuid,
 ) -> Result<Vec<SuggestionProfile>, sqlx::Error> {
-    println!("get_suggestions called with user_id: {:?}, gender_preference: {:?}", user_id, gender_preference);
+    println!(
+        "get_suggestions called with user_id: {:?}, gender_preference: {:?}",
+        user_id, gender_preference
+    );
     // If gender_preference is provided, filter by it; otherwise return all profiles
     let profiles = if let Some(genders) = gender_preference {
         // Filter profiles where gender is in the preference list
@@ -210,7 +213,7 @@ pub async fn get_suggestions(
             // SELECT user_id::TEXT as user_id, name, bio, birthdate::TEXT, pronouns, gender, sexuality, height,
             //     NULL as location, job, company, school, ethnicity, politics, religion,
             //     relationship_type, dating_intention, drinks, smokes
-            // FROM profiles 
+            // FROM profiles
             // WHERE gender = ANY($1) AND user_id != $2
             // LIMIT 20
             r#"
@@ -280,12 +283,12 @@ pub async fn get_suggestions(
                     MD5(p.user_id::TEXT || $3)
                 LIMIT 20 OFFSET $4
                 "#,
-            )
-            // ORDER BY RANDOM()
+        )
+        // ORDER BY RANDOM()
         .bind(&genders)
         .bind(user_id)
         .bind("test-seed-123".to_string()) // default for testing
-        .bind(0)   // default for testing 
+        .bind(0) // default for testing
         .fetch_all(pool)
         .await?
     } else {

@@ -1,4 +1,4 @@
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize)]
 pub struct PhoneLoginRequest {
@@ -27,30 +27,29 @@ pub struct CheckUserExistsRequest {
 pub struct UpdateUserRequest {
     pub email: Option<String>,
     pub phone: Option<String>,
-}   
-
+}
 
 #[derive(Deserialize)]
 pub struct UpdateProfileRequest {
     // For profiles table
     pub name: Option<String>,
     pub bio: Option<String>,
-    pub birthdate: Option<String>,      // DATE - "1995-03-15"
-    pub pronouns: Option<String>,        // "she/her", "he/him"
-    pub gender: Option<String>,          // "Woman", "Man", "Non-binary"
-    pub sexuality: Option<String>,       // "Straight", "Gay", "Bisexual"
-    pub height: Option<i32>,             // in cm
-    pub location: Option<String>,        // Will need to convert to POINT
+    pub birthdate: Option<String>, // DATE - "1995-03-15"
+    pub pronouns: Option<String>,  // "she/her", "he/him"
+    pub gender: Option<String>,    // "Woman", "Man", "Non-binary"
+    pub sexuality: Option<String>, // "Straight", "Gay", "Bisexual"
+    pub height: Option<i32>,       // in cm
+    pub location: Option<String>,  // Will need to convert to POINT
     pub job: Option<String>,
     pub company: Option<String>,
     pub school: Option<String>,
     pub ethnicity: Option<String>,
     pub politics: Option<String>,
     pub religion: Option<String>,
-    pub relationship_type: Option<String>,  // "Monogamy"
-    pub dating_intention: Option<String>,   // "Long-term relationship"
-    pub drinks: Option<String>,             // "Socially", "No"
-    pub smokes: Option<String>,             // "No", "Yes"
+    pub relationship_type: Option<String>, // "Monogamy"
+    pub dating_intention: Option<String>,  // "Long-term relationship"
+    pub drinks: Option<String>,            // "Socially", "No"
+    pub smokes: Option<String>,            // "No", "Yes"
 }
 
 #[derive(Deserialize)]
@@ -85,19 +84,19 @@ pub struct UpdatePromptRequest {
 }
 
 // USERS PREFERENCES
-#[derive(Deserialize, Debug, Clone)]
+#[derive(Deserialize, Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AgeRange {
     pub min: i32,
     pub max: i32,
 }
 
-#[derive(Deserialize, Debug, Clone)]
+#[derive(Deserialize, Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Preferences {
     // User identification (at least one required to find the user)
-    pub email: Option<String>,
-    pub phone: Option<String>,
+    // pub email: Option<String>,
+    // pub phone: Option<String>,
     // Preferences
     pub age_range: Option<AgeRange>,
     pub distance_max: Option<i32>,

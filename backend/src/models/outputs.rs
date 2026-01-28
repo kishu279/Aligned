@@ -1,7 +1,7 @@
-use sqlx::types::Uuid;
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
-use chrono::{DateTime, Utc};
+use sqlx::types::Uuid;
 
 // Generic Responses
 #[derive(Serialize)]
@@ -33,7 +33,7 @@ pub struct UserSummary {
 }
 
 // Profile
-#[derive(Serialize)]
+#[derive(Serialize, Debug)]
 pub struct UserProfile {
     pub id: String,
     pub images: Option<Vec<UserImage>>,
@@ -49,7 +49,7 @@ pub struct UserImage {
     pub order: i32,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Debug)]
 pub struct UserPrompt {
     pub id: String,
     pub question: String,
@@ -182,3 +182,20 @@ pub struct Interaction {
     pub comment: Option<String>,
     pub created_at: chrono::DateTime<chrono::Utc>,
 }
+
+// USERS PREFERENCES
+#[derive(Deserialize, Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AgeRange {
+    pub min: i32,
+    pub max: i32,
+}
+
+// #[derive(Deserialize, Clone, FromRow, Debug, Serialize)]
+// pub struct GetPreferences {
+//     pub age_range: Option<AgeRange>,
+//     pub distance_max: Option<i32>,
+//     pub gender_preference: Option<Vec<String>>,
+//     pub ethnicity_preference: Option<Vec<String>>,
+//     pub religion_preference: Option<Vec<String>>,
+// }
