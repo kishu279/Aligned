@@ -13,9 +13,9 @@
       "backgroundColor": "#ffffff"
     },
     "newArchEnabled": true,
-    "ios": { 
+    "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.subhdotsol.aligned"
+      "bundleIdentifier": "com.kishu279.aligned"
     },
     "android": {
       "googleServicesFile": "./google-services.json",
@@ -24,7 +24,7 @@
         "foregroundImage": "./assets/icons/logo.png",
         "backgroundColor": "#000000"
       },
-      "package": "com.subhdotsol.aligned"
+      "package": "com.kishu279.aligned"
     },
     "web": {
       "bundler": "metro",
@@ -43,9 +43,9 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "f96a6157-d6a8-4c71-b324-4e03b983423f"
+        "projectId": "ad15d269-561a-49e1-8058-b8f911bb5df0"
       }
     },
-    "owner": "subhdotsol"
+    "owner": "kishu279"
   }
 }

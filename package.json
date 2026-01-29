@@ -21,6 +21,7 @@
     "@react-navigation/elements": "^2.6.3",
     "@react-navigation/native": "^7.1.8",
     "@types/node": "^24.10.1",
+    "eas-cli": "^13.4.2",
     "expo": "~54.0.31",
     "expo-constants": "~18.0.10",
     "expo-dev-client": "~6.0.20",

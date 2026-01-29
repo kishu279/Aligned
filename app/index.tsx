@@ -198,12 +198,12 @@ export default function LoginScreen() {
                             </TouchableOpacity>
 
                             {/* Sign in with Phone Number Button */}
-                            <TouchableOpacity
+                            {/* <TouchableOpacity
                                 style={styles.phoneButton}
                                 onPress={() => router.push("/auth/phone")}
                             >
                                 <Text style={styles.phoneButtonText}>Sign in with Phone Number</Text>
-                            </TouchableOpacity>
+                            </TouchableOpacity> */}
 
                             {/* Back Button */}
                             <TouchableOpacity
